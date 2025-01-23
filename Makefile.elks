@@ -1,0 +1,71 @@
+# C86 Makefile for ELKS using OpenWatcom C
+
+############# Standard Section for Open Watcom C ##############
+ifndef TOPDIR
+$(error ELKS TOPDIR is not defined)
+endif
+
+ifndef WATCOM
+$(error OpenWatcom WATCOM is not defined)
+endif
+
+CC = owcc
+LD = owcc
+CLBASE = -mcmodel=l
+CLBASE += -bnone -march=i86 -std=c99
+CLBASE += -fno-stack-check -fnostdlib
+CLBASE += -Wc,-fpi87 -Wc,-zev -Wc,-zls -Wc,-x -Wc,-wcd=303
+WARNINGS = -Wall -Wextra
+INCLUDES = -I$(TOPDIR)/libc/include -I$(TOPDIR)/elks/include
+INCLUDES += -I$(TOPDIR)/libc/include/watcom
+DEFINES = -D__ELKS__
+CFLAGS = -O2 $(CLBASE) $(WARNINGS) $(INCLUDES) $(DEFINES) $(LOCALFLAGS)
+LDBASE = -bos2 -s
+LDBASE += -Wl,option -Wl,dosseg
+LDBASE += -Wl,option -Wl,start=_start
+LDBASE += -Wl,option -Wl,nodefaultlibs
+LDBASE += -Wl,option -Wl,stack=0x4000
+LDBASE += -Wl,option -Wl,heapsize=512
+LDFLAGS = $(LDBASE)
+LDLIBS = -Wl,library -Wl,$(TOPDIR)/libc/libc.lib
+
+OBJS = $(SRCS:.c=.obj)
+%.obj: %.c
+	$(CC) -c $(CFLAGS) -o $*.obj $<
+
+############# End of Standard Section ##############
+
+BINDIR = ../elks-bin
+LOCALFLAGS = -DNDEBUG
+PROG = eview
+SRCS = \
+         picojpeg.c \
+         main.c \
+         mem.c \
+
+all: $(PROG)
+
+
+$(PROG): $(OBJS)
+	$(LD) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
+
+gzip: $(OBJS) test/minigzip.obj
+	$(LD) $(LDFLAGS) -o $@ $(OBJS) test/minigzip.obj $(LDLIBS)
+
+#zip: $(OBJS) contrib/minizip/minizip.obj
+#	$(LD) $(LDFLAGS) -o $@ $(OBJS) contrib/minizip/minizip.obj $(LDLIBS)
+
+untgz: $(OBJS) contrib/untgz/untgz.obj
+	$(LD) $(LDFLAGS) -o $@ $(OBJS) contrib/untgz/untgz.obj $(LDLIBS)
+
+test/minigzip.obj: test/minigzip.c
+	$(CC) -c $(CFLAGS) -o test/minigzip.obj $<
+
+#contrib/minizip/minizip.obj: contrib/minizip/minizip.c
+#	$(CC) -c $(CFLAGS) -o contrib/minizip/minizip.obj $<
+
+contrib/untgz/untgz.obj: contrib/untgz/untgz.c
+	$(CC) -c $(CFLAGS) -o contrib/untgz/untgz.obj $<
+
+clean:
+	rm -f $(PROG) *.obj tmp.h
