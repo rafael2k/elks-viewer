@@ -40,6 +40,7 @@ void writevid(unsigned int offset, uint8_t color)
 
 void plot_pixel(int x,int y, uint8_t color)
 {
+	// x + (y*320)
      /*  y*320 = y*256 + y*64 = y*2^8 + y*2^6   */
     int offset = (y<<8)+(y<<6)+x;
     writevid(offset, color);
@@ -382,12 +383,12 @@ int main(int arg_c, char *arg_v[])
       {
 		  int pixel[3];
 		  get_pixel(pixel, pImage + (y * width + x) * comps, 0, comps);
-
-		 int red = (pixel[0] * 8) / 256;
-		 int green = (pixel[1] * 8) / 256;
-		 int blue = (pixel[2] * 4) / 256;
-		 uint8_t eightBitColor = (red << 5) | (green << 2) | blue;
-		 plot_pixel(x, y, eightBitColor);
+		  // fprintf(stderr, "%d %d %d\n", pixel[0], pixel[1], pixel[2]);
+		  int red = (pixel[0] * 8) / 256;
+		  int green = (pixel[1] * 8) / 256;
+		  int blue = (pixel[2] * 4) / 256;
+		  uint8_t eightBitColor = (red << 5) | (green << 2) | blue;
+		  plot_pixel(x, y, eightBitColor);
 
       }
    }
