@@ -1,9 +1,5 @@
-//------------------------------------------------------------------------------
-// jpg2tga.c
-// JPEG to TGA file conversion example program.
-// Public domain, Rich Geldreich <richgel99@gmail.com>
-// Last updated Nov. 26, 2010
-//------------------------------------------------------------------------------
+// ELKS image viewer
+
 #include "picojpeg.h"
 
 #include <stdlib.h>
@@ -11,6 +7,8 @@
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <stdint.h>
 #include <assert.h>
 
 extern void *malloc(size_t size);
@@ -26,14 +24,57 @@ extern void free(void *ptr);
 #define min(a,b)    (((a) < (b)) ? (a) : (b))
 #endif
 //------------------------------------------------------------------------------
-typedef unsigned char uint8;
 typedef unsigned int uint;
 //------------------------------------------------------------------------------
+
+#define VGA_256_COLOR_MODE  0x13      /* use to set 256-color mode. */
+#define TEXT_MODE           0x03      /* use to set 80x25 text mode. */
+
+
+uint8_t __far *VGA = (void __far *)0xA0000000L;        /* this points to video VGA memory. */
+void writevid(unsigned int offset, uint8_t color)
+{
+	VGA[offset] = color;
+}
+
+
+void plot_pixel(int x,int y, uint8_t color)
+{
+     /*  y*320 = y*256 + y*64 = y*2^8 + y*2^6   */
+    int offset = (y<<8)+(y<<6)+x;
+    writevid(offset, color);
+}
+
+void mode3();
+#pragma aux mode3 =								\
+"mov AH,0", \
+"mov AL,3H", \
+"int 10H", \
+modify [ AH AL ];
+
+void mode13();
+#pragma aux mode13 =								\
+"mov AH,0", \
+"mov AL,13H", \
+"int 10H", \
+modify [ AH AL ];
+
+
+void set_mode(uint8_t mode)
+{
+	if (mode == VGA_256_COLOR_MODE)
+		mode13();
+	if (mode == TEXT_MODE)
+		mode3();
+}
+
+
+
 static int print_usage()
 {
-   printf("Usage: jpg2raw [source_file] [dest_file] <reduce>\n");
+   printf("Usage: eview [source_file] [dest_file] <reduce>\n");
    printf("source_file: JPEG file to decode. Note: Progressive files are not supported.\n");
-   printf("dest_file: Output .TGA file\n");
+   printf("dest_file: Output .raw file\n");
    printf("reduce: Optional, if 1 the JPEG file is quickly decoded to ~1/8th resolution.\n");
    printf("\n");
    printf("Outputs 8-bit grayscale or truecolor 24-bit TGA files.\n");
@@ -65,14 +106,14 @@ unsigned char pjpeg_need_bytes_callback(unsigned char* pBuf, unsigned char buf_s
 // If reduce is non-zero, the image will be more quickly decoded at approximately
 // 1/8 resolution (the actual returned resolution will depend on the JPEG 
 // subsampling factor).
-uint8 *pjpeg_load_from_file(const char *pFilename, int *x, int *y, int *comps, pjpeg_scan_type_t *pScan_type, int reduce)
+uint8_t *pjpeg_load_from_file(const char *pFilename, int *x, int *y, int *comps, pjpeg_scan_type_t *pScan_type, int reduce)
 {
    pjpeg_image_info_t image_info;
    int mcu_x = 0;
    int mcu_y = 0;
    uint row_pitch;
-   uint8 *pImage;
-   uint8 status;
+   uint8_t *pImage;
+   uint8_t status;
    uint decoded_width, decoded_height;
    uint row_blocks_per_mcu, col_blocks_per_mcu;
 
@@ -113,7 +154,7 @@ uint8 *pjpeg_load_from_file(const char *pFilename, int *x, int *y, int *comps, p
    decoded_height = reduce ? (image_info.m_MCUSPerCol * image_info.m_MCUHeight) / 8 : image_info.m_height;
 
    row_pitch = decoded_width * image_info.m_comps;
-   pImage = (uint8 *)malloc(row_pitch * decoded_height);
+   pImage = (uint8_t *)malloc(row_pitch * decoded_height);
    if (!pImage)
    {
       fclose(g_pInFile);
@@ -126,7 +167,7 @@ uint8 *pjpeg_load_from_file(const char *pFilename, int *x, int *y, int *comps, p
    for ( ; ; )
    {
       int y, x;
-      uint8 *pDst_row;
+      uint8_t *pDst_row;
 
       status = pjpeg_decode_mcu();
       
@@ -189,13 +230,13 @@ uint8 *pjpeg_load_from_file(const char *pFilename, int *x, int *y, int *comps, p
 
             for (x = 0; x < image_info.m_MCUWidth; x += 8)
             {
-               uint8 *pDst_block = pDst_row + x * image_info.m_comps;
+               uint8_t *pDst_block = pDst_row + x * image_info.m_comps;
 
                // Compute source byte offset of the block in the decoder's MCU buffer.
                uint src_ofs = (x * 8U) + (y * 16U);
-               const uint8 *pSrcR = image_info.m_pMCUBufR + src_ofs;
-               const uint8 *pSrcG = image_info.m_pMCUBufG + src_ofs;
-               const uint8 *pSrcB = image_info.m_pMCUBufB + src_ofs;
+               const uint8_t *pSrcR = image_info.m_pMCUBufR + src_ofs;
+               const uint8_t *pSrcG = image_info.m_pMCUBufG + src_ofs;
+               const uint8_t *pSrcB = image_info.m_pMCUBufB + src_ofs;
 
                const int bx_limit = min(8, image_info.m_width - (mcu_x * image_info.m_MCUWidth + x));
 
@@ -204,7 +245,7 @@ uint8 *pjpeg_load_from_file(const char *pFilename, int *x, int *y, int *comps, p
                   int bx, by;
                   for (by = 0; by < by_limit; by++)
                   {
-                     uint8 *pDst = pDst_block;
+                     uint8_t *pDst = pDst_block;
 
                      for (bx = 0; bx < bx_limit; bx++)
                         *pDst++ = *pSrcR++;
@@ -219,7 +260,7 @@ uint8 *pjpeg_load_from_file(const char *pFilename, int *x, int *y, int *comps, p
                   int bx, by;
                   for (by = 0; by < by_limit; by++)
                   {
-                     uint8 *pDst = pDst_block;
+                     uint8_t *pDst = pDst_block;
 
                      for (bx = 0; bx < bx_limit; bx++)
                      {
@@ -268,7 +309,7 @@ typedef struct image_compare_results_tag
    double peak_snr;
 } image_compare_results;
 
-static void get_pixel(int* pDst, const uint8 *pSrc, int luma_only, int num_comps)
+static void get_pixel(int* pDst, const uint8_t *pSrc, int luma_only, int num_comps)
 {
    int r, g, b;
    if (num_comps == 1)
@@ -287,63 +328,6 @@ static void get_pixel(int* pDst, const uint8 *pSrc, int luma_only, int num_comps
    pDst[0] = r; pDst[1] = g; pDst[2] = b;
 }
 
-// Compute image error metrics.
-#if 0
-static void image_compare(image_compare_results *pResults, int width, int height, const uint8 *pComp_image, int comp_image_comps, const uint8 *pUncomp_image_data, int uncomp_comps, int luma_only)
-{
-   double hist[256];
-   double sum = 0.0f, sum2 = 0.0f;
-   double total_values;
-   const uint first_channel = 0, num_channels = 3;
-   int x, y;
-   uint i;
-
-   memset(hist, 0, sizeof(hist));
-   
-   for (y = 0; y < height; y++)
-   {
-      for (x = 0; x < width; x++)
-      {
-         uint c;
-         int a[3]; 
-         int b[3]; 
-
-         get_pixel(a, pComp_image + (y * width + x) * comp_image_comps, luma_only, comp_image_comps);
-         get_pixel(b, pUncomp_image_data + (y * width + x) * uncomp_comps, luma_only, uncomp_comps);
-
-         for (c = 0; c < num_channels; c++)
-            hist[labs(a[first_channel + c] - b[first_channel + c])]++;
-      }
-   }
-
-   pResults->max_err = 0;
-   
-   for (i = 0; i < 256; i++)
-   {
-      double x;
-      if (!hist[i])
-         continue;
-      if (i > pResults->max_err)
-         pResults->max_err = i;
-      x = i * hist[i];
-      sum += x;
-      sum2 += i * x;
-   }
-
-   // See http://bmrc.berkeley.edu/courseware/cs294/fall97/assignment/psnr.html
-   total_values = width * height;
-
-   pResults->mean = sum / total_values;
-   pResults->mean_squared = sum2 / total_values;
-
-   pResults->root_mean_squared = sqrt(pResults->mean_squared);
-
-   if (!pResults->root_mean_squared)
-      pResults->peak_snr = 1e+10f;
-   else
-      pResults->peak_snr = log10(255.0f / pResults->root_mean_squared) * 20.0f;
-}
-#endif
 //------------------------------------------------------------------------------
 int main(int arg_c, char *arg_v[])
 {
@@ -353,10 +337,10 @@ int main(int arg_c, char *arg_v[])
    int width, height, comps;
    pjpeg_scan_type_t scan_type;
    const char* p = "?";
-   uint8 *pImage;
+   uint8_t *pImage;
    int reduce = 0;
    
-   printf("picojpeg example v1.1, Rich Geldreich <richgel99@gmail.com>, Compiled " __TIME__ " " __DATE__ "\n");
+   printf("ELKS Viewer, Compiled " __TIME__ " " __DATE__ "\n");
 
    if ((arg_c < 3) || (arg_c > 4))
       return print_usage();
@@ -379,22 +363,36 @@ int main(int arg_c, char *arg_v[])
 
    printf("Width: %i, Height: %i, Comps: %i\n", width, height, comps);
 
-#if 0
+
+#if 1
+   set_mode(VGA_256_COLOR_MODE);
+
+  for (int i=0;i<60;i++)
+  	plot_pixel(100+i,100,5);
+
+  for (int i=0;i<60;i++)
+        plot_pixel(100,100+i,0xA);
+
+  sleep (5);
+
    int y; int x;
    for (y = 0; y < height; y++)
    {
       for (x = 0; x < width; x++)
       {
-         uint c;
-         int pixel[3];
-         int b[3];
+		  int pixel[3];
+		  get_pixel(pixel, pImage + (y * width + x) * comps, 0, comps);
 
-         get_pixel(pixel, pImage + (y * width + x), 0, 3);
+		 int red = (pixel[0] * 8) / 256;
+		 int green = (pixel[1] * 8) / 256;
+		 int blue = (pixel[2] * 4) / 256;
+		 uint8_t eightBitColor = (red << 5) | (green << 2) | blue;
+		 plot_pixel(x, y, eightBitColor);
 
-         //for (c = 0; c < 3; c++)
-		//	 print_pixel();
       }
    }
+   sleep (10);
+   set_mode(TEXT_MODE);
 #endif
 
    switch (scan_type)
@@ -407,10 +405,15 @@ int main(int arg_c, char *arg_v[])
    }
    printf("Scan type: %s\n", p);
 
+
+
    FILE *fout = fopen(pDst_filename,"w");
-   fwrite(pImage, height*width*comps, 1, fout);
+   int i;
+   for (i = 0; i < height; i++)
+	   fwrite(pImage, width*comps, 1, fout);
    fclose(fout);
    printf("Successfully wrote destination file %s\n", pDst_filename);
+
 
 
 #if 0
