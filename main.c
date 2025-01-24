@@ -12,7 +12,7 @@
 #include <assert.h>
 
 extern void *malloc(size_t size);
-void *calloc(size_t nmemb, size_t size);
+extern void *calloc(size_t nmemb, size_t size);
 extern void free(void *ptr);
 
 
@@ -36,7 +36,6 @@ void writevid(unsigned int offset, uint8_t color)
 {
 	VGA[offset] = color;
 }
-
 
 void plot_pixel(int x,int y, uint8_t color)
 {
@@ -153,6 +152,8 @@ uint8_t *pjpeg_load_from_file(const char *pFilename, int *x, int *y, int *comps,
    // In reduce mode output 1 pixel per 8x8 block.
    decoded_width = reduce ? (image_info.m_MCUSPerRow * image_info.m_MCUWidth) / 8 : image_info.m_width;
    decoded_height = reduce ? (image_info.m_MCUSPerCol * image_info.m_MCUHeight) / 8 : image_info.m_height;
+
+   printf("decoded width: %u decoded height: %u\n", decoded_width, decoded_height);
 
    row_pitch = decoded_width * image_info.m_comps;
    pImage = (uint8_t *)malloc(row_pitch * decoded_height);
@@ -341,7 +342,7 @@ int main(int arg_c, char *arg_v[])
    uint8_t *pImage;
    int reduce = 0;
    
-   printf("ELKS Viewer, Compiled " __TIME__ " " __DATE__ "\n");
+   printf("ELKS Viewer v0.1\n");
 
    if ((arg_c < 3) || (arg_c > 4))
       return print_usage();
@@ -364,18 +365,20 @@ int main(int arg_c, char *arg_v[])
 
    printf("Width: %i, Height: %i, Comps: %i\n", width, height, comps);
 
+   printf("Test mode - will show a known pattern then show the image for 10s.\n");
 
-#if 1
    set_mode(VGA_256_COLOR_MODE);
 
-  for (int i=0;i<60;i++)
-  	plot_pixel(100+i,100,5);
+   // known pattern from vgatest
+   for (int i=0;i<60;i++)
+	   plot_pixel(100+i,100,5);
 
-  for (int i=0;i<60;i++)
-        plot_pixel(100,100+i,0xA);
+   for (int i=0;i<60;i++)
+	   plot_pixel(100,100+i,0xA);
 
-  sleep (5);
+   sleep (5);
 
+   // this is wrong, fix image format conversion to VGA memory
    int y; int x;
    for (y = 0; y < height; y++)
    {
@@ -394,7 +397,6 @@ int main(int arg_c, char *arg_v[])
    }
    sleep (10);
    set_mode(TEXT_MODE);
-#endif
 
    switch (scan_type)
    {
