@@ -32,17 +32,20 @@ typedef unsigned int uint;
 
 
 uint8_t __far *VGA = (void __far *)0xA0000000L;        /* this points to video VGA memory. */
+#if 0
 void writevid(unsigned int offset, uint8_t color)
 {
 	VGA[offset] = color;
 }
+#endif
 
 void plot_pixel(int x,int y, uint8_t color)
 {
 	// x + (y*320)
      /*  y*320 = y*256 + y*64 = y*2^8 + y*2^6   */
     int offset = (y<<8)+(y<<6)+x;
-    writevid(offset, color);
+	VGA[offset] = color;
+/*    writevid(offset, color); */
 }
 
 void mode3();
@@ -301,15 +304,57 @@ uint8_t *pjpeg_load_from_file(const char *pFilename, int *x, int *y, int *comps,
 
    return pImage;
 }
-//------------------------------------------------------------------------------
-typedef struct image_compare_results_tag
+
+
+static void draw_pixels(int rgb_dir, int vdir, int x, int y, int comp, void *data, int write_alpha, int scanline_pad)
 {
-   double max_err;
-   double mean;
-   double mean_squared;
-   double root_mean_squared;
-   double peak_snr;
-} image_compare_results;
+	// uint8_t bg[3] = { 255, 0, 255}, px[3];
+	// uint32_t zero = 0;
+	uint8_t red;
+	uint8_t green;
+	uint8_t blue;
+	uint8_t eightBitColor;
+	int i, j, j_end;
+
+   if (vdir < 0)
+      j_end = -1, j = y-1;
+   else
+      j_end =  y, j = 0;
+
+   for (; j != j_end; j += vdir) {
+      for (i=0; i < x; ++i) {
+         uint8_t *d = (uint8_t *) data + (j*x+i)*comp;
+//         if (write_alpha < 0)
+//            fwrite(&d[comp-1], 1, 1, f);
+         switch (comp) {
+		 case 1:
+			 plot_pixel(i, j, d[0]);
+			 break;
+//		 case 4:
+//               if (!write_alpha) {
+//                  for (k=0; k < 3; ++k)
+//                     px[k] = bg[k] + ((d[k] - bg[k]) * d[3])/255;
+//                  writef(f, "111", px[1-rgb_dir],px[1],px[1+rgb_dir]);
+//                  break;
+//               }
+               /* FALLTHROUGH */
+		 case 3:
+			 red = ((int) d[1-rgb_dir] * 8) / 255;
+			 green = ((int) d[1] * 8) / 255;
+			 blue = ((int) d[1+rgb_dir] * 8) / 255;
+			 eightBitColor = (red << 5) | (green << 2) | blue;
+			 plot_pixel(i, j, eightBitColor);
+			 break;
+         }
+//         if (write_alpha > 0)
+//            fwrite(&d[comp-1], 1, 1, f);
+      }
+//      fwrite(&zero,scanline_pad,1,f);
+   }
+}
+
+
+//------------------------------------------------------------------------------
 
 static void get_pixel(int* pDst, const uint8_t *pSrc, int luma_only, int num_comps)
 {
@@ -370,30 +415,32 @@ int main(int arg_c, char *arg_v[])
    set_mode(VGA_256_COLOR_MODE);
 
    // known pattern from vgatest
-   for (int i=0;i<60;i++)
-	   plot_pixel(100+i,100,5);
+   for (int i=0;i < width;i++)
+	   plot_pixel(i,100,5);
 
-   for (int i=0;i<60;i++)
-	   plot_pixel(100,100+i,0xA);
+   for (int i=0; i < height;i++)
+	   plot_pixel(100,i,0xA);
 
-   sleep (5);
+   sleep (2);
+
+//   draw_pixels(-1, -1, width, height, comps, pImage, 0, 0);
+//   sleep (10);
 
    // this is wrong, fix image format conversion to VGA memory
    int y; int x;
    for (y = 0; y < height; y++)
    {
-      for (x = 0; x < width; x++)
-      {
-		  int pixel[3];
-		  get_pixel(pixel, pImage + (y * width + x) * comps, 0, comps);
-		  // fprintf(stderr, "%d %d %d\n", pixel[0], pixel[1], pixel[2]);
-		  int red = (pixel[0] * 8) / 256;
-		  int green = (pixel[1] * 8) / 256;
-		  int blue = (pixel[2] * 4) / 256;
-		  uint8_t eightBitColor = (red << 5) | (green << 2) | blue;
-		  plot_pixel(x, y, eightBitColor);
-
-      }
+	   for (x = 0; x < width; x++)
+	   {
+		   int pixel[3];
+		   get_pixel(pixel, &pImage[(y * width + x) * comps], 0, comps);
+//		   fprintf(stderr, "%d %d %d\n", pixel[0], pixel[1], pixel[2]);
+		   int red = (pixel[0] * 8) / 255;
+		   int green = (pixel[1] * 8) / 255;
+		   int blue = (pixel[2] * 4) / 255;
+		   uint8_t eightBitColor = (uint8_t) (red << 5) | (green << 2) | blue;
+		   plot_pixel(x, y, eightBitColor);
+	  }
    }
    sleep (10);
    set_mode(TEXT_MODE);
@@ -409,55 +456,12 @@ int main(int arg_c, char *arg_v[])
    printf("Scan type: %s\n", p);
 
 
-
    FILE *fout = fopen(pDst_filename,"w");
    int i;
    for (i = 0; i < height; i++)
 	   fwrite(pImage, width*comps, 1, fout);
    fclose(fout);
    printf("Successfully wrote destination file %s\n", pDst_filename);
-
-
-
-#if 0
-   if (!stbi_write_tga(pDst_filename, width, height, comps, pImage))
-   {
-      printf("Failed writing image to destination file!\n");
-      return EXIT_FAILURE;
-   }
-
-   printf("Successfully wrote destination file %s\n", pDst_filename);
-
-   // Now load the JPEG file using stb_image.c and compare the decoded pixels vs. picojpeg's.
-   // stb_image.c uses filtered and higher precision chroma upsampling, and a higher precision IDCT vs. picojpeg so some error is to be expected.
-   if (!reduce)
-   {
-      int stb_width = 0, stb_height = 0, stb_actual_comps = 0, stb_req_comps = 0;
-      unsigned char *pSTB_image_data;
-      stb_req_comps = (scan_type == PJPG_GRAYSCALE) ? 1 : 3;
-      pSTB_image_data = stbi_load(pSrc_filename, &stb_width, &stb_height, &stb_actual_comps, stb_req_comps);
-      if (!pSTB_image_data)
-      {
-         printf("Failed decoding using stb_image.c!\n");
-      }
-      else if ((stb_width != width) || (stb_height != height) || (stb_actual_comps != comps))
-      {
-         printf("Image was successfully decompresed using stb_image.c, but the resulting dimensions/comps differ from picojpeg's!\n");
-      }
-      else
-      {
-         image_compare_results results;
-         memset(&results, 0, sizeof(results));
-
-         image_compare(&results, width, height, pImage, comps, pSTB_image_data, stb_actual_comps, (scan_type == PJPG_GRAYSCALE));
-                  
-         printf("picojpeg vs. stb_image:\n");
-         printf("Error Max: %f, Mean: %f, Mean^2: %f, RMSE: %f, PSNR: %f\n", results.max_err, results.mean, results.mean_squared, results.root_mean_squared, results.peak_snr);
-      }
-      
-      free(pSTB_image_data);
-   }
-#endif
 
    free(pImage);
 
