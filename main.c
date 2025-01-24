@@ -74,10 +74,10 @@ static int print_usage()
 {
    printf("Usage: eview [source_file] [dest_file] <reduce>\n");
    printf("source_file: JPEG file to decode. Note: Progressive files are not supported.\n");
-   printf("dest_file: Output .raw file\n");
+   printf("dest_file: Output .raw file.\n");
    printf("reduce: Optional, if 1 the JPEG file is quickly decoded to ~1/8th resolution.\n");
    printf("\n");
-   printf("Outputs 8-bit grayscale or truecolor 24-bit TGA files.\n");
+   printf("Outputs 8-bit grayscale or truecolor 24-bit raw files.\n");
    return EXIT_FAILURE;
 }
 //------------------------------------------------------------------------------
