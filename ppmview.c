@@ -26,11 +26,36 @@ int isgraph(int c)
 
 uint8_t __far *VGA = (void __far *)0xA0000000L;        /* this points to video VGA memory. */
 
-#define CGA_BW_MODE         0x06      /* use to set b/w mode. */
-#define VGA_256_COLOR_MODE  0x13      /* use to set 256-color mode. */
 
-#define TEXT_MODE           0x03      /* use to set 80x25 text mode. */
+#define VIDEO_MODE_5        0x05      /* 320x200 2-bit */
+#define VIDEO_MODE_6        0x06      /* 640x200 1-bit */
+#define VIDEO_MODE_12       0x12      /* 640x480 4-bit */
+#define VIDEO_MODE_13       0x13      /* 320x200 8-bit */
+#define TEXT_MODE_3         0x03      /* 80x25 4-bit text mode. */
 
+/*
+	AL = 00  40x25 B/W text (CGA,EGA,MCGA,VGA)
+	   = 01  40x25 16 color text (CGA,EGA,MCGA,VGA)
+	   = 02  80x25 16 shades of gray text (CGA,EGA,MCGA,VGA)
+	   = 03  80x25 16 color text (CGA,EGA,MCGA,VGA)
+	   = 04  320x200 4 color graphics (CGA,EGA,MCGA,VGA)
+	   = 05  320x200 4 color graphics (CGA,EGA,MCGA,VGA)
+	   = 06  640x200 B/W graphics (CGA,EGA,MCGA,VGA)
+	   = 07  80x25 Monochrome text (MDA,HERC,EGA,VGA)
+	   = 08  160x200 16 color graphics (PCjr)
+	   = 09  320x200 16 color graphics (PCjr)
+	   = 0A  640x200 4 color graphics (PCjr)
+	   = 0B  Reserved (EGA BIOS function 11)
+	   = 0C  Reserved (EGA BIOS function 11)
+	   = 0D  320x200 16 color graphics (EGA,VGA)
+	   = 0E  640x200 16 color graphics (EGA,VGA)
+	   = 0F  640x350 Monochrome graphics (EGA,VGA)
+	   = 10  640x350 16 color graphics (EGA or VGA with 128K)
+		 640x350 4 color graphics (64K EGA)
+	   = 11  640x480 B/W graphics (MCGA,VGA)
+	   = 12  640x480 16 color graphics (VGA)
+	   = 13  320x200 256 color graphics (MCGA,VGA)
+*/
 
 uint8_t vgapal[256][3] = {
     /* colors 0-15 */
@@ -393,13 +418,6 @@ void plot_pixel(int x,int y, uint8_t color)
 	VGA[offset] = color;
 }
 
-void mode3();
-#pragma aux mode3 =								\
-"mov AH,0", \
-"mov AL,3H", \
-"int 10H", \
-modify [ AH AL ];
-
 void mode13();
 #pragma aux mode13 =								\
 "mov AH,0", \
@@ -407,12 +425,45 @@ void mode13();
 "int 10H", \
 modify [ AH AL ];
 
+void mode12();
+#pragma aux mode12 =								\
+"mov AH,0", \
+"mov AL,12H", \
+"int 10H", \
+modify [ AH AL ];
+
+void mode6();
+#pragma aux mode6 =								\
+"mov AH,0", \
+"mov AL,6H", \
+"int 10H", \
+modify [ AH AL ];
+
+void mode5();
+#pragma aux mode5 =								\
+"mov AH,0", \
+"mov AL,5H", \
+"int 10H", \
+modify [ AH AL ];
+
+void mode3();
+#pragma aux mode3 =								\
+"mov AH,0", \
+"mov AL,3H", \
+"int 10H", \
+modify [ AH AL ];
 
 void set_mode(uint8_t mode)
 {
-	if (mode == VGA_256_COLOR_MODE)
+	if (mode == VIDEO_MODE_13)
 		mode13();
-	if (mode == TEXT_MODE)
+	if (mode == VIDEO_MODE_12)
+		mode12();
+	if (mode == VIDEO_MODE_5)
+		mode5();
+	if (mode == VIDEO_MODE_6)
+		mode6();
+	if (mode == TEXT_MODE_3)
 		mode3();
 }
 
@@ -521,11 +572,11 @@ int main(int arg_c, char *arg_v[])
    printf("Source file:      \"%s\"\n", filename);
 
    sleep(1);
-   set_mode(VGA_256_COLOR_MODE);
+   set_mode(VIDEO_MODE_13);
 
    int ret = ppm_load_and_display(filename);
    sleep(10);
-   set_mode(TEXT_MODE);
+   set_mode(TEXT_MODE_3);
 
    return ret;
 
