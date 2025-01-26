@@ -1730,10 +1730,12 @@ static void convertCb(uint8 dstOfs)
       int16 cbG, cbB;
 
       cbG = ((cb * 88U) >> 8U) - 44U;
-      *pDstG++ = subAndClamp(pDstG[0], cbG);
+      pDstG[0] = subAndClamp(pDstG[0], cbG);
+      ++pDstG;
 
       cbB = (cb + ((cb * 198U) >> 8U)) - 227U;
-      *pDstB++ = addAndClamp(pDstB[0], cbB);
+      pDstB[0] = addAndClamp(pDstB[0], cbB);
+      ++pDstB;
    }
 }
 /*----------------------------------------------------------------------------*/
@@ -1751,10 +1753,12 @@ static void convertCr(uint8 dstOfs)
       int16 crR, crG;
 
       crR = (cr + ((cr * 103U) >> 8U)) - 179;
-      *pDstR++ = addAndClamp(pDstR[0], crR);
+      pDstR[0] = addAndClamp(pDstR[0], crR);
+      ++pDstR;
 
       crG = ((cr * 183U) >> 8U) - 91;
-      *pDstG++ = subAndClamp(pDstG[0], crG);
+      pDstG[0] = subAndClamp(pDstG[0], crG);
+      ++pDstG;
    }
 }
 /*----------------------------------------------------------------------------*/
