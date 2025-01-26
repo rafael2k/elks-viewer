@@ -35,13 +35,13 @@ OBJS = $(SRCS:.c=.obj)
 
 ############# End of Standard Section ##############
 
-BINDIR = ../elks-bin
 LOCALFLAGS = -DNDEBUG
 PROG = jpgview ppmview
-SRCS = \
-         picojpeg.c \
-         jpgview.c \
-         mem.c \
+#SRCS = \
+#         picojpeg.c \
+#         jpgview.c \
+#         mem.c \
+#         graphics.c \
 
 all: $(PROG)
 
@@ -49,11 +49,13 @@ all: $(PROG)
 #$(PROG): $(OBJS)
 #	$(LD) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
 
-jpgview: $(OBJS)
-	$(LD) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
+jpgview: picojpeg.obj mem.obj jpgview.obj
+	$(LD) $(LDFLAGS) -o $@ picojpeg.obj mem.obj jpgview.obj $(LDLIBS)
 
-ppmview: ppmview.obj
-	$(LD) $(LDFLAGS) -o $@ ppmview.obj $(LDLIBS)
+ppmview: ppmview.obj graphics.obj
+	$(LD) $(LDFLAGS) -o $@ ppmview.obj ppmview.obj graphics.obj $(LDLIBS)
+
+
 
 #ppmview.obj: ppmview.c
 #	$(CC) -c $(CFLAGS) -o ppmview.obj $<
