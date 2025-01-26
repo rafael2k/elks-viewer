@@ -37,35 +37,26 @@ OBJS = $(SRCS:.c=.obj)
 
 BINDIR = ../elks-bin
 LOCALFLAGS = -DNDEBUG
-PROG = eview
+PROG = jpgview ppmview
 SRCS = \
          picojpeg.c \
-         main.c \
-         mem.c \
+         jpgview.c \
 
 all: $(PROG)
 
 
-$(PROG): $(OBJS)
+#$(PROG): $(OBJS)
+#	$(LD) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
+
+jpgview: $(OBJS)
 	$(LD) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
 
-gzip: $(OBJS) test/minigzip.obj
-	$(LD) $(LDFLAGS) -o $@ $(OBJS) test/minigzip.obj $(LDLIBS)
+ppmview: ppmview.obj
+	$(LD) $(LDFLAGS) -o $@ ppmview.obj $(LDLIBS)
 
-#zip: $(OBJS) contrib/minizip/minizip.obj
-#	$(LD) $(LDFLAGS) -o $@ $(OBJS) contrib/minizip/minizip.obj $(LDLIBS)
+#ppmview.obj: ppmview.c
+#	$(CC) -c $(CFLAGS) -o ppmview.obj $<
 
-untgz: $(OBJS) contrib/untgz/untgz.obj
-	$(LD) $(LDFLAGS) -o $@ $(OBJS) contrib/untgz/untgz.obj $(LDLIBS)
-
-test/minigzip.obj: test/minigzip.c
-	$(CC) -c $(CFLAGS) -o test/minigzip.obj $<
-
-#contrib/minizip/minizip.obj: contrib/minizip/minizip.c
-#	$(CC) -c $(CFLAGS) -o contrib/minizip/minizip.obj $<
-
-contrib/untgz/untgz.obj: contrib/untgz/untgz.c
-	$(CC) -c $(CFLAGS) -o contrib/untgz/untgz.obj $<
 
 clean:
 	rm -f $(PROG) *.obj tmp.h
