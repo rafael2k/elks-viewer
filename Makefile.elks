@@ -41,6 +41,7 @@ PROG = jpgview ppmview
 SRCS = \
          picojpeg.c \
          jpgview.c \
+         mem.c \
 
 all: $(PROG)
 

@@ -653,28 +653,6 @@ uint8_t *pjpeg_load_from_file(const char *pFilename, int *x, int *y, int *comps,
 }
 
 //------------------------------------------------------------------------------
-
-static void get_pixel(int* pDst, const uint8_t *pSrc, int luma_only, int num_comps)
-{
-   int r, g, b;
-   if (num_comps == 1)
-   {
-      r = g = b = pSrc[0];
-   }
-   else if (luma_only)
-   {
-       // will this run on 16 bit int?
-      const int YR = 19595, YG = 38470, YB = 7471;
-      r = g = b = (pSrc[0] * YR + pSrc[1] * YG + pSrc[2] * YB + 32768) / 65536;
-   }
-   else
-   {
-      r = pSrc[0]; g = pSrc[1]; b = pSrc[2];
-   }
-   pDst[0] = r; pDst[1] = g; pDst[2] = b;
-}
-
-//------------------------------------------------------------------------------
 int main(int arg_c, char *arg_v[])
 {
    int n = 1;
@@ -702,8 +680,6 @@ int main(int arg_c, char *arg_v[])
        printf("Destination file: \"%s\"\n", pDst_filename);
    printf("Reduce during decoding: %u\n", reduce);
 
-   set_mode(VGA_256_COLOR_MODE);
-
    pImage = pjpeg_load_from_file(pSrc_filename, &width, &height, &comps, &scan_type, reduce);
    if (!pImage)
    {
@@ -724,7 +700,7 @@ int main(int arg_c, char *arg_v[])
    printf("Scan type: %s\n", p);
 
 
-   printf("Test mode - will show a known pattern then show the image for 10s.\n");
+   printf("Test mode - will show a known pattern (2s) then show the image for 10s.\n");
 
 
    set_mode(VGA_256_COLOR_MODE);
@@ -736,25 +712,21 @@ int main(int arg_c, char *arg_v[])
    for (int i=0; i < height;i++)
 	   plot_pixel(100,i,0xA);
 
-   set_mode(TEXT_MODE);
-
    printf("Now the decoded image will be displayed.\n");
    sleep (2);
 
-   set_mode(VGA_256_COLOR_MODE);
-
    // this is wrong, fix image format conversion to VGA memory
    int y; int x;
+   int off = 0;
    for (y = 0; y < height; y++)
    {
-	   for (x = 0; x < width; x++)
-	   {
-		   int pixel[3];
-		   get_pixel(pixel, &pImage[(y * width + x) * comps], 0, comps);
-//		   fprintf(stderr, "%d %d %d\n", pixel[0], pixel[1], pixel[2]);
-           uint8_t eightBitColor = rgb2vga(pixel[0], pixel[1], pixel[2]);
-		   plot_pixel(x, y, eightBitColor);
-	  }
+       for (x = 0; x < width; x++)
+       {
+//   fprintf(stderr, "%d %d %d\n", pixel[0], pixel[1], pixel[2]);
+           uint8_t eightBitColor =rgb2vga(pImage[off], pImage[off + 1], pImage[off + 2]);;
+           off += 3;
+           plot_pixel(x, y, eightBitColor);
+       }
    }
    sleep (10);
    set_mode(TEXT_MODE);
