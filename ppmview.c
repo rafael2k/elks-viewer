@@ -1,7 +1,5 @@
 // ELKS image viewer
 
-#include "picojpeg.h"
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -27,10 +25,11 @@ int isgraph(int c)
 uint8_t __far *VGA = (void __far *)0xA0000000L;        /* this points to video VGA memory. */
 
 
-#define VIDEO_MODE_5        0x05      /* 320x200 2-bit */
-#define VIDEO_MODE_6        0x06      /* 640x200 1-bit */
-#define VIDEO_MODE_12       0x12      /* 640x480 4-bit */
-#define VIDEO_MODE_13       0x13      /* 320x200 8-bit */
+#define VIDEO_MODE_5        0x05      /* 320x200 2-bit / CGA */
+#define VIDEO_MODE_6        0x06      /* 640x200 1-bit / CGA*/
+#define VIDEO_MODE_10       0x10      /* 640x350 4-bit / EGA */
+#define VIDEO_MODE_12       0x12      /* 640x480 4-bit / VGA */
+#define VIDEO_MODE_13       0x13      /* 320x200 8-bit / VGA */
 #define TEXT_MODE_3         0x03      /* 80x25 4-bit text mode. */
 
 /*
@@ -432,6 +431,13 @@ void mode12();
 "int 10H", \
 modify [ AH AL ];
 
+void mode10();
+#pragma aux mode10 =								\
+"mov AH,0", \
+"mov AL,10H", \
+"int 10H", \
+modify [ AH AL ];
+
 void mode6();
 #pragma aux mode6 =								\
 "mov AH,0", \
@@ -453,12 +459,23 @@ void mode3();
 "int 10H", \
 modify [ AH AL ];
 
+#if 0 // TODO: implement other functions...
+void get_mode();
+#pragma aux mode10 parm [ax bx cx dx] value [ax] =								\
+"mov AH,0", \
+"mov AL,10H", \
+"int 10H", \
+modify [ AH AL ];
+#endif
+
 void set_mode(uint8_t mode)
 {
 	if (mode == VIDEO_MODE_13)
 		mode13();
 	if (mode == VIDEO_MODE_12)
 		mode12();
+	if (mode == VIDEO_MODE_10)
+		mode10();
 	if (mode == VIDEO_MODE_5)
 		mode5();
 	if (mode == VIDEO_MODE_6)
