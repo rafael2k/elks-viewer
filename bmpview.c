@@ -22,6 +22,8 @@ int bmp_load_and_display(const char *filename, int mode)
 	uint8_t pixel_format;
 	uint8_t rle;
 	uint8_t palette[768]; // we not using it yet...
+	uint8_t line_buffer[1920]; // max 640 pixels per line on 3 byte colors
+
 
 	FILE *fp = fopen(filename, "r");
 	if (!fp)
@@ -32,7 +34,12 @@ int bmp_load_and_display(const char *filename, int mode)
 	if (header != 0x4D42)
 		fprintf(stderr, "Not a BMP file %s\n",filename);
 
-	fseek(fp, 12,SEEK_CUR);
+	uint32_t bmp_size = 0;
+	fread(&bmp_size, 1, 4, fp);
+	fseek(fp, 4,SEEK_CUR);
+	uint32_t offset = 0;
+	fread(&offset, 1, 4, fp);
+
 	fread(&dib_header_size, 1, 2, fp );
 	fseek(fp, 2, SEEK_CUR);
 	fread(&width, 1 ,2, fp);
@@ -45,8 +52,11 @@ int bmp_load_and_display(const char *filename, int mode)
 
 	fseek(fp, 15,SEEK_CUR);
 	fread(&num_colors, 1, 2, fp);
+
+	if (num_colors == 0)
+		num_colors = 1 << pixel_format;
+
 	//Advance to palette data
-	//Skip "color space information" (if it is there) added by modern apps like GIMP
 	dib_header_size -=34;
 	fseek(fp, dib_header_size, SEEK_CUR);
 
@@ -57,79 +67,98 @@ int bmp_load_and_display(const char *filename, int mode)
 	fprintf(stderr, "pixel format: %hu\n", pixel_format);
 	fprintf(stderr, "run-length encoding: %hu\n", rle);
 	fprintf(stderr, "num colors: %hu\n", num_colors);
+	fprintf(stderr, "offset: %u\n", offset);
 
 #endif
 	// load palette
-	int load_palette = 0;
-	if (load_palette)
+	if (pixel_format <= 8)
 	{
-		for(int i = 0; i < num_colors; i++)
+		int load_palette = 0;
+		if (load_palette)
 		{
-			uint8_t col[3];
-			fread(&col, 1, 3, fp);
-			palette[(int)(i*3+2)] = col[0] >> 2;
-			palette[(int)(i*3+1)] = col[1] >> 2;
-			palette[(int)(i*3+0)] = col[2] >> 2;
-		}
-	}
-	else
-	{
-		fseek(fp,3,1);
-	}
-	fseek(fp,1,1);
-
-
-	if (pixel_format == 4)
-	{
-		if (rle)
-		{
-			// decompress_RLE_BMP(fp,pixel_format,width,height,0);
+			for(int i = 0; i < num_colors; i++)
+			{
+				uint8_t col[3];
+				fread(&col, 1, 3, fp);
+				palette[(int)(i*3+2)] = col[0] >> 2;
+				palette[(int)(i*3+1)] = col[1] >> 2;
+				palette[(int)(i*3+0)] = col[2] >> 2;
+			}
 		}
 		else
 		{
-			uint8_t line_size = width>>1;
-			uint8_t *line_buffer = malloc(line_size);
-			for(int i = 0; i < height; i++)
-			{
-				fread(&line_buffer, 1, line_size, fp);
+			fseek(fp,3,1);
+		}
+		fseek(fp,1,1);
 
-				for (int j = 0; j < line_size; j++)
+		fprintf(stderr, "ftell %ld\n", ftell(fp));
+		if (pixel_format == 4)
+		{
+			if (rle)
+			{
+				// decompress_RLE_BMP(fp,pixel_format,width,height,0);
+			}
+			else
+			{
+				uint16_t line_size = width >> 1;
+				for(int i = 0; i < height; i++)
 				{
-					plot_pixel(j<<1, i, line_buffer[j] >> 4);
-					plot_pixel((j<<1)+1, i, line_buffer[j] & 0x0F);
+					fread(line_buffer, 1, line_size, fp);
+
+					for (int j = 0; j < line_size; j++)
+					{
+						plot_pixel(j<<1, i, line_buffer[j] >> 4);
+						plot_pixel((j<<1)+1, i, line_buffer[j] & 0x0F);
+					}
 				}
 			}
-			free(line_buffer);
 		}
-	}
-	if (pixel_format == 8)
-	{
-		if (rle)
+		if (pixel_format == 8)
 		{
-			// decompress_RLE_BMP(fp,pixel_format,width,height,0);
-		}
-		else
-		{
-			uint8_t line_size = width;
-			uint8_t *line_buffer = malloc(line_size);
-			for(int i = 0; i < height; i++)
+			if (rle)
 			{
-				fread(&line_buffer, 1, line_size, fp);
-
-				for (int j = 0; j < line_size; j++)
-				{
-					plot_pixel(j, i, line_buffer[j]);
-				}
+				// decompress_RLE_BMP(fp,pixel_format,width,height,0);
 			}
+			else
+			{
+				uint16_t line_size = width;
+				for(int i = 0; i < height; i++)
+				{
+					fread(line_buffer, 1, line_size, fp);
 
-			free(line_buffer);
+					for (int j = 0; j < line_size; j++)
+					{
+						plot_pixel(j, i, line_buffer[j]);
+					}
+				}
+
+			}
+		}
+		if (pixel_format == 1)
+		{
+			// TODO
 		}
 	}
-	if (pixel_format == 1)
-	{
-		// TODO
-	}
 
+	if (pixel_format == 24)
+	{
+		fprintf(stderr, "ftell %ld\n", ftell(fp));
+		uint16_t line_size = width * 3;
+		for(int i = height - 1; i >= 0; i--)
+		{
+			offset = 0;
+			fread(line_buffer, 1, line_size, fp);
+
+			for (int j = 0; j < width; j++)
+			{
+				uint8_t pixel = rgb2vga(line_buffer[offset+2], line_buffer[offset+1], line_buffer[offset]);
+				plot_pixel(j, i, pixel);
+				offset += 3;
+			}
+		}
+
+		//blue, green and red
+	}
 
 	return 0;
 

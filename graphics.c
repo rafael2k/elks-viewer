@@ -7,7 +7,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-
+// Reference: https://www.chibialiens.com/8086/platform.php?noui=1
+uint8_t __far *CGA = (void __far *)0xB8000000L;        /* this points to video CGA memory. */
 uint8_t __far *VGA = (void __far *)0xA0000000L;        /* this points to video VGA memory. */
 
 

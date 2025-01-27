@@ -36,12 +36,13 @@ static int print_usage()
 
 int ppm_load_and_display(const char *pFilename, int mode)
 {
-	int x_val, y_val, maxcolors_val;
+	unsigned int width, height, maxcolors_val;
 	unsigned int i;
 	char magic[MAXLINE];
 	char line[MAXLINE];
 	int count=0;
 	int is_ascii = 0;
+	uint8_t line_buffer[1920];
 
 	FILE *f = fopen(pFilename, "rb");
 	if (!f)
@@ -62,11 +63,11 @@ int ppm_load_and_display(const char *pFilename, int mode)
 		}
 		if (flag == 0) {
 			if (count == 0) {
-				count += sscanf(line, "%2s %d %d %d", magic, &x_val, &y_val, &maxcolors_val);
+				count += sscanf(line, "%2s %d %d %d", magic, &width, &height, &maxcolors_val);
 			} else if (count == 1) {
-				count += sscanf(line, "%d %d %d", &x_val, &y_val, &maxcolors_val);
+				count += sscanf(line, "%d %d %d", &width, &height, &maxcolors_val);
 			} else if (count == 2) {
-				count += sscanf(line, "%d %d", &y_val, &maxcolors_val);
+				count += sscanf(line, "%d %d", &height, &maxcolors_val);
 			} else if (count == 3) {
 				count += sscanf(line, "%d", &maxcolors_val);
 			}
@@ -84,32 +85,60 @@ int ppm_load_and_display(const char *pFilename, int mode)
 		fprintf(stderr, "Error: Input file not in PPM format!\n");
 		return -1;
 	}
-	int c;
-	int r_val, g_val, b_val;
+	int c, r_val, g_val, b_val;
+	int j = 0;
+	uint32_t offset = 0;
 
-	/* Read the rest of the PPM file. */
-	i = 0;
-	int j = 0, k = 0;
-	while ((c = fgetc(f)) != EOF) {
-		ungetc(c, f);
-		if (is_ascii == 1) {
-			if (fscanf(f, "%d %d %d", &r_val, &g_val, &b_val) != 3)
-				return -1;
-		} else {
-			r_val = fgetc(f);
-			g_val = fgetc(f);
-			b_val = fgetc(f);
+	uint16_t line_size = width * 3;
+
+	// read now in chunks of line size
+	for(i = 0; i < height; i++)
+	{
+		if ((c = fgetc(f)) != EOF)
+			ungetc(c, f);
+		else
+		{
+			fprintf(stderr, "Premature end-of-file?\n");
+			break;
 		}
 
-		uint8_t pixel = rgb2vga(r_val, g_val, b_val);
-		plot_pixel(k, j, pixel);
-		k++;
-		if (k == x_val)
+		if (is_ascii == 1) // ascii mode
 		{
-			k = 0;
-			j++;
+			offset = 0;
+			for ( j = 0; j < width; j++ )
+			{
+				if (fscanf(f, "%d %d %d", &r_val, &g_val, &b_val) != 3)
+					return -1;
+
+				line_buffer[offset] = r_val;
+				line_buffer[offset+1] = g_val;
+				line_buffer[offset+2] = b_val;
+				offset += 3;
+			}
+
+			offset = 0;
+			for (j = 0; j < width; j++)
+			{
+				uint8_t pixel = rgb2vga(line_buffer[offset], line_buffer[offset+1], line_buffer[offset+2]);
+				plot_pixel(j, i, pixel);
+				offset += 3;
+			}
+
+		}
+		else // binary mode
+		{
+			offset = 0;
+			fread(line_buffer, 1, line_size, f);
+
+			for (j = 0; j < width; j++)
+			{
+				uint8_t pixel = rgb2vga(line_buffer[offset], line_buffer[offset+1], line_buffer[offset+2]);
+				plot_pixel(j, i, pixel);
+				offset += 3;
+			}
 		}
 	}
+
     return 0;
 }
 
