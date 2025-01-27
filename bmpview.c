@@ -14,6 +14,84 @@
 
 #define DEBUG
 
+// Uncompress BMP image (either RLE8 or RLE4)
+// FROM GIMP: removed most multiplications, all divisions, and delta
+void decompress_RLE_BMP(FILE *fp, unsigned char bpp, int width, int height, uint8_t palette){
+	int xpos = 0; int ypos = 0;
+	int i,j,n;
+	uint16_t total_bytes_read = 0;
+	uint8_t i_max = 0;
+	uint8_t _bpp = 0;
+	uint8_t count_val[2] = {0,0};//Get mode Get data
+
+	if (bpp == 8) _bpp = 3;
+	if (bpp == 4) _bpp = 2;
+
+	while (ypos < height && xpos <= width)
+	{
+		// uint16_t y_offset = ypos * width;
+		fread(count_val, 1, 2, fp);
+		// Count + Color - record
+		if (count_val[0] != 0)
+		{
+            // encoded mode run - count == run_length; val == pixel data
+			if (count_val[1])
+				count_val[1] += palette;
+			for (j = 0; ( j < count_val[0]) && (xpos < width);)
+			{
+				for (i = 1;((i <= (8 >> _bpp)) && (xpos < width) && ( j < count_val[0]));i++, xpos++, j++)
+				{
+					plot_pixel(xpos, ypos, (count_val[1] & (((1<<bpp)-1) << (8 - (i << _bpp)))) >> (8 - (i << _bpp)));
+					//LT_tile_tempdata[y_offset + xpos] = (count_val[1] & (((1<<bpp)-1) << (8 - (i << _bpp)))) >> (8 - (i << _bpp));
+				}
+			}
+		}
+		// uncompressed record
+		if ((count_val[0] == 0) && (count_val[1] > 2))
+		{
+			n = count_val[1];
+			total_bytes_read = 0;
+			for (j = 0; j < n; j += (8 >> _bpp))
+			{
+				// read the next byte in the record
+				uint8_t c; uint8_t d = 0;
+				fread(&c, 1, 1, fp);
+				if (c)
+					d = palette;
+				else
+					d = 0;
+				c += d;
+                total_bytes_read++;
+				// read all pixels from that byte
+				i_max = 8 >> _bpp;
+				if (n - j < i_max) i_max = n - j;
+                i = 1;
+				while ((i <= i_max) && (xpos < width))
+				{
+					plot_pixel(xpos, ypos, (c >> (8-(i<<_bpp))) & ((1<<bpp)-1));
+                    // LT_tile_tempdata[y_offset + xpos] = (c >> (8-(i<<_bpp))) & ((1<<bpp)-1);
+                    i++; xpos++;
+                }
+            }
+			// absolute mode runs are padded to 16-bit alignment
+			if (total_bytes_read & 1)
+				fseek(fp,1,SEEK_CUR);
+		}
+		// Line end
+		if ((count_val[0] == 0) && (count_val[1] == 0)){ypos++;xpos = 0;}
+		// Bitmap end
+		if ((count_val[0] == 0) && (count_val[1] == 1)) break;
+		// Deltarecord. I did not find any BMP using this
+        if ((count_val[0] == 0) && (count_val[1] == 2))
+		{
+			count_val[0] = fgetc(fp);
+			count_val[1] = fgetc(fp);
+			xpos += count_val[0]; ypos += count_val[1];
+        }
+    }
+}
+
+
 int bmp_load_and_display(const char *filename, int mode)
 {
 	uint16_t header;
@@ -21,9 +99,9 @@ int bmp_load_and_display(const char *filename, int mode)
 	uint16_t width, height, num_colors;
 	uint8_t pixel_format;
 	uint8_t rle;
-	uint8_t palette[768]; // we not using it yet...
+	uint8_t *palette;
 	uint8_t *line_buffer; // max 640 pixels per line on 3 byte colors
-
+	int load_palette = 1;
 
 	FILE *fp = fopen(filename, "r");
 	if (!fp)
@@ -73,36 +151,40 @@ int bmp_load_and_display(const char *filename, int mode)
 	// load palette
 	if (pixel_format <= 8)
 	{
-		int load_palette = 0;
 		if (load_palette)
 		{
+			palette = malloc(num_colors * 3);
 			for(int i = 0; i < num_colors; i++)
 			{
-				uint8_t col[3];
-				fread(&col, 1, 3, fp);
-				palette[(int)(i*3+2)] = col[0] >> 2;
-				palette[(int)(i*3+1)] = col[1] >> 2;
-				palette[(int)(i*3+0)] = col[2] >> 2;
+				uint8_t col[4];
+				fread(&col, 1, 4, fp);
+				//  blue, green, red, 0x00
+				//palette[i*3+2] = col[0] >> 2;
+				//palette[i*3+1] = col[1] >> 2;
+				//palette[i*3+0] = col[2] >> 2;
+				palette[i*3+2] = col[0]; // blue
+				palette[i*3+1] = col[1]; // grem
+				palette[i*3+0] = col[2]; // red
 			}
 		}
 		else
 		{
-			fseek(fp,3,1);
+			fseek(fp, num_colors << 2, 1);
 		}
-		fseek(fp,1,1);
 
 		fprintf(stderr, "ftell %ld\n", ftell(fp));
+
 		if (pixel_format == 4)
 		{
 			if (rle)
 			{
-				// decompress_RLE_BMP(fp,pixel_format,width,height,0);
+				decompress_RLE_BMP(fp,pixel_format,width,height,0);
 			}
 			else
 			{
 				uint16_t line_size = width >> 1;
 				line_buffer = malloc(line_size);
-				for(int i = 0; i < height; i++)
+				for(int i = height - 1; i >= 0; i--)
 				{
 					fread(line_buffer, 1, line_size, fp);
 
@@ -120,14 +202,14 @@ int bmp_load_and_display(const char *filename, int mode)
 		{
 			if (rle)
 			{
-				// decompress_RLE_BMP(fp,pixel_format,width,height,0);
+				decompress_RLE_BMP(fp,pixel_format,width,height,0);
 			}
 			else
 			{
 				uint16_t line_size = width;
 				line_buffer = malloc(line_size);
 
-				for(int i = 0; i < height; i++)
+				for(int i = height - 1; i >=0; i--)
 				{
 					fread(line_buffer, 1, line_size, fp);
 
@@ -142,7 +224,29 @@ int bmp_load_and_display(const char *filename, int mode)
 		}
 		if (pixel_format == 1)
 		{
-			// TODO
+			if (rle)
+			{
+				// decompress_RLE_BMP(fp,pixel_format,width,height,0);
+			}
+			else
+			{
+				uint16_t line_size = width >> 3;
+				line_buffer = malloc(line_size);
+
+				for(int i = height - 1; i >= 0; i--)
+				{
+					fread(line_buffer, 1, line_size, fp);
+
+					for (int j = 0; j < line_size; j++)
+					{
+						int x_off = j << 3;
+						for (int offset = 7; offset >= 0; offset--)
+							plot_pixel(x_off + offset, i, ((line_buffer[j] >> (7 - offset)) & 1) ? 0XF : 0);
+					}
+				}
+				free(line_buffer);
+				fprintf(stderr, "ftell %u\n", ftell(fp));
+			}
 		}
 	}
 
@@ -166,6 +270,9 @@ int bmp_load_and_display(const char *filename, int mode)
 		}
 		free(line_buffer);
 	}
+
+	if (pixel_format <= 8 && load_palette)
+		free(palette);
 
 	return 0;
 
