@@ -36,7 +36,7 @@ OBJS = $(SRCS:.c=.obj)
 ############# End of Standard Section ##############
 
 LOCALFLAGS = -DNDEBUG
-PROG = jpgview ppmview
+PROG = jpgview ppmview bmpview
 #SRCS = \
 #         picojpeg.c \
 #         jpgview.c \
@@ -55,6 +55,8 @@ jpgview: picojpeg.obj mem.obj jpgview.obj
 ppmview: ppmview.obj graphics.obj
 	$(LD) $(LDFLAGS) -o $@ ppmview.obj ppmview.obj graphics.obj $(LDLIBS)
 
+bmpview: bmpview.obj graphics.obj
+	$(LD) $(LDFLAGS) -o $@ bmpview.obj graphics.obj $(LDLIBS)
 
 
 #ppmview.obj: ppmview.c
