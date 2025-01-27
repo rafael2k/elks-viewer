@@ -24,9 +24,6 @@ extern void free(void *ptr);
 #ifndef min
 #define min(a,b)    (((a) < (b)) ? (a) : (b))
 #endif
-//------------------------------------------------------------------------------
-typedef unsigned int uint;
-//------------------------------------------------------------------------------
 
 #define VGA_256_COLOR_MODE  0x13      /* use to set 256-color mode. */
 #define TEXT_MODE           0x03      /* use to set 80x25 text mode. */
@@ -360,7 +357,7 @@ uint8_t vgapal[256][3] = {
 uint8_t rgb2vga(int r, int g, int b) {
 
 	int closest = 32000;
-	int ndx = 0;
+	uint8_t ndx = 0;
 	for (int i = 0; i < 248; i++) {
 		uint8_t *sample = vgapal[i];
 		int rs = (sample[0] > r)? sample[0] - r : r - sample[0];
@@ -372,16 +369,19 @@ uint8_t rgb2vga(int r, int g, int b) {
 
 		if (closest > dst) {
 			closest = dst;
-			ndx = i;
+			ndx = (uint8_t)i;
 		}
-		else if (dst < 30) {
-			ndx = i;
-			break;
-		}
-
+		else
+        {
+            if (dst < 30)
+            {
+                ndx = (uint8_t)i;
+                break;
+            }
+        }
 	}
 
-	return (uint8_t)ndx;
+	return ndx;
 }
 
 
@@ -432,12 +432,12 @@ static int print_usage()
 }
 //------------------------------------------------------------------------------
 static FILE *g_pInFile;
-static uint g_nInFileSize;
-static uint g_nInFileOfs;
+static uint32_t g_nInFileSize;
+static uint32_t g_nInFileOfs;
 //------------------------------------------------------------------------------
 unsigned char pjpeg_need_bytes_callback(unsigned char* pBuf, unsigned char buf_size, unsigned char *pBytes_actually_read, void *pCallback_data)
 {
-   uint n;
+   uint32_t n;
    pCallback_data;
    
    n = min(g_nInFileSize - g_nInFileOfs, buf_size);
@@ -456,16 +456,16 @@ unsigned char pjpeg_need_bytes_callback(unsigned char* pBuf, unsigned char buf_s
 // If reduce is non-zero, the image will be more quickly decoded at approximately
 // 1/8 resolution (the actual returned resolution will depend on the JPEG 
 // subsampling factor).
-uint8_t *pjpeg_load_from_file(const char *pFilename, int *x, int *y, int *comps, pjpeg_scan_type_t *pScan_type, int reduce)
+uint8_t __far *pjpeg_load_from_file(const char *pFilename, int *x, int *y, int *comps, pjpeg_scan_type_t *pScan_type, int reduce)
 {
    pjpeg_image_info_t image_info;
    int mcu_x = 0;
    int mcu_y = 0;
-   uint row_pitch;
+   uint16_t row_pitch;
    uint8_t *pImage;
    uint8_t status;
-   uint decoded_width, decoded_height;
-   uint row_blocks_per_mcu, col_blocks_per_mcu;
+   uint16_t decoded_width, decoded_height;
+   uint16_t row_blocks_per_mcu, col_blocks_per_mcu;
 
    *x = 0;
    *y = 0;
@@ -506,7 +506,10 @@ uint8_t *pjpeg_load_from_file(const char *pFilename, int *x, int *y, int *comps,
    printf("decoded width: %u decoded height: %u\n", decoded_width, decoded_height);
 
    row_pitch = decoded_width * image_info.m_comps;
-   pImage = (uint8_t *)malloc(row_pitch * decoded_height);
+
+   // this will not work...
+   pImage = (uint8_t __far *)malloc(row_pitch * decoded_height);
+
    if (!pImage)
    {
       fclose(g_pInFile);
@@ -554,18 +557,18 @@ uint8_t *pjpeg_load_from_file(const char *pFilename, int *x, int *y, int *comps,
          }
          else
          {
-            uint y, x;
+            uint16_t y, x;
             for (y = 0; y < col_blocks_per_mcu; y++)
             {
-               uint src_ofs = (y * 128U);
-               for (x = 0; x < row_blocks_per_mcu; x++)
-               {
-                  pDst_row[0] = image_info.m_pMCUBufR[src_ofs];
-                  pDst_row[1] = image_info.m_pMCUBufG[src_ofs];
-                  pDst_row[2] = image_info.m_pMCUBufB[src_ofs];
-                  pDst_row += 3;
-                  src_ofs += 64;
-               }
+                uint16_t src_ofs = (y * 128U);
+                for (x = 0; x < row_blocks_per_mcu; x++)
+                {
+                    pDst_row[0] = image_info.m_pMCUBufR[src_ofs];
+                    pDst_row[1] = image_info.m_pMCUBufG[src_ofs];
+                    pDst_row[2] = image_info.m_pMCUBufB[src_ofs];
+                    pDst_row += 3;
+                    src_ofs += 64;
+                }
 
                pDst_row += row_pitch - 3 * row_blocks_per_mcu;
             }
@@ -576,6 +579,8 @@ uint8_t *pjpeg_load_from_file(const char *pFilename, int *x, int *y, int *comps,
          // Copy MCU's pixel blocks into the destination bitmap.
          pDst_row = pImage + (mcu_y * image_info.m_MCUHeight) * row_pitch + (mcu_x * image_info.m_MCUWidth * image_info.m_comps);
 
+         fprintf(stderr, "x = %u\ny = %u\n\n", mcu_x * image_info.m_MCUWidth, mcu_y * image_info.m_MCUHeight);
+
          for (y = 0; y < image_info.m_MCUHeight; y += 8)
          {
             const int by_limit = min(8, image_info.m_height - (mcu_y * image_info.m_MCUHeight + y));
@@ -585,7 +590,7 @@ uint8_t *pjpeg_load_from_file(const char *pFilename, int *x, int *y, int *comps,
                uint8_t *pDst_block = pDst_row + x * image_info.m_comps;
 
                // Compute source byte offset of the block in the decoder's MCU buffer.
-               uint src_ofs = (x * 8U) + (y * 16U);
+               uint16_t src_ofs = (x << 3) + (y << 4);
                const uint8_t *pSrcR = image_info.m_pMCUBufR + src_ofs;
                const uint8_t *pSrcG = image_info.m_pMCUBufG + src_ofs;
                const uint8_t *pSrcB = image_info.m_pMCUBufB + src_ofs;
@@ -661,7 +666,7 @@ int main(int arg_c, char *arg_v[])
    int width, height, comps;
    pjpeg_scan_type_t scan_type;
    const char* p = "?";
-   uint8_t *pImage;
+   uint8_t __far *pImage;
    int reduce = 0;
    
    printf("ELKS JPG Viewer v0.1\n");
@@ -702,6 +707,7 @@ int main(int arg_c, char *arg_v[])
 
    printf("Test mode - will show a known pattern (2s) then show the image for 10s.\n");
 
+   sleep(1);
 
    set_mode(VGA_256_COLOR_MODE);
 
@@ -713,11 +719,11 @@ int main(int arg_c, char *arg_v[])
 	   plot_pixel(100,i,0xA);
 
    printf("Now the decoded image will be displayed.\n");
-   sleep (2);
+   sleep (1);
 
-   // this is wrong, fix image format conversion to VGA memory
+   // the buffer is > 64kB... :/
    int y; int x;
-   int off = 0;
+   uint32_t off = 0;
    for (y = 0; y < height; y++)
    {
        for (x = 0; x < width; x++)

@@ -42,7 +42,7 @@ int ppm_load_and_display(const char *pFilename, int mode)
 	char line[MAXLINE];
 	int count=0;
 	int is_ascii = 0;
-	uint8_t line_buffer[1920];
+	uint8_t *line_buffer;
 
 	FILE *f = fopen(pFilename, "rb");
 	if (!f)
@@ -90,8 +90,9 @@ int ppm_load_and_display(const char *pFilename, int mode)
 	uint32_t offset = 0;
 
 	uint16_t line_size = width * 3;
+	line_buffer = malloc(line_size);
 
-	// read now in chunks of line size
+	// read now a whole line before writing to screen
 	for(i = 0; i < height; i++)
 	{
 		if ((c = fgetc(f)) != EOF)
@@ -119,7 +120,7 @@ int ppm_load_and_display(const char *pFilename, int mode)
 			offset = 0;
 			for (j = 0; j < width; j++)
 			{
-				uint8_t pixel = rgb2vga(line_buffer[offset], line_buffer[offset+1], line_buffer[offset+2]);
+				uint8_t pixel = rgb2vga(line_buffer[offset], line_buffer[offset + 1], line_buffer[offset + 2]);
 				plot_pixel(j, i, pixel);
 				offset += 3;
 			}
@@ -132,12 +133,14 @@ int ppm_load_and_display(const char *pFilename, int mode)
 
 			for (j = 0; j < width; j++)
 			{
-				uint8_t pixel = rgb2vga(line_buffer[offset], line_buffer[offset+1], line_buffer[offset+2]);
+				uint8_t pixel = rgb2vga(line_buffer[offset], line_buffer[offset + 1], line_buffer[offset + 2]);
 				plot_pixel(j, i, pixel);
 				offset += 3;
 			}
 		}
 	}
+
+	free(line_buffer);
 
     return 0;
 }

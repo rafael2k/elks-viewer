@@ -22,7 +22,7 @@ int bmp_load_and_display(const char *filename, int mode)
 	uint8_t pixel_format;
 	uint8_t rle;
 	uint8_t palette[768]; // we not using it yet...
-	uint8_t line_buffer[1920]; // max 640 pixels per line on 3 byte colors
+	uint8_t *line_buffer; // max 640 pixels per line on 3 byte colors
 
 
 	FILE *fp = fopen(filename, "r");
@@ -101,6 +101,7 @@ int bmp_load_and_display(const char *filename, int mode)
 			else
 			{
 				uint16_t line_size = width >> 1;
+				line_buffer = malloc(line_size);
 				for(int i = 0; i < height; i++)
 				{
 					fread(line_buffer, 1, line_size, fp);
@@ -111,6 +112,8 @@ int bmp_load_and_display(const char *filename, int mode)
 						plot_pixel((j<<1)+1, i, line_buffer[j] & 0x0F);
 					}
 				}
+				free(line_buffer);
+
 			}
 		}
 		if (pixel_format == 8)
@@ -122,6 +125,8 @@ int bmp_load_and_display(const char *filename, int mode)
 			else
 			{
 				uint16_t line_size = width;
+				line_buffer = malloc(line_size);
+
 				for(int i = 0; i < height; i++)
 				{
 					fread(line_buffer, 1, line_size, fp);
@@ -131,6 +136,7 @@ int bmp_load_and_display(const char *filename, int mode)
 						plot_pixel(j, i, line_buffer[j]);
 					}
 				}
+				free(line_buffer);
 
 			}
 		}
@@ -144,6 +150,8 @@ int bmp_load_and_display(const char *filename, int mode)
 	{
 		fprintf(stderr, "ftell %ld\n", ftell(fp));
 		uint16_t line_size = width * 3;
+		line_buffer = malloc(line_size);
+
 		for(int i = height - 1; i >= 0; i--)
 		{
 			offset = 0;
@@ -151,13 +159,12 @@ int bmp_load_and_display(const char *filename, int mode)
 
 			for (int j = 0; j < width; j++)
 			{
-				uint8_t pixel = rgb2vga(line_buffer[offset+2], line_buffer[offset+1], line_buffer[offset]);
+				uint8_t pixel = rgb2vga(line_buffer[offset+2], line_buffer[offset+1], line_buffer[offset]); // blue, green and red
 				plot_pixel(j, i, pixel);
 				offset += 3;
 			}
 		}
-
-		//blue, green and red
+		free(line_buffer);
 	}
 
 	return 0;
