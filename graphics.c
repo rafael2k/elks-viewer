@@ -378,70 +378,45 @@ void plot_pixel(int x,int y, uint8_t color)
 	VGA[offset] = color;
 }
 
-void mode13();
-#pragma aux mode13 = \
-"mov AH,0", \
-"mov AL,13H", \
-"int 10H", \
-modify [ AH AL ];
 
-void mode12();
-#pragma aux mode12 = \
-"mov AH,0", \
-"mov AL,12H", \
-"int 10H", \
-modify [ AH AL ];
-
-void mode10();
-#pragma aux mode10 = \
-"mov AH,0", \
-"mov AL,10H", \
-"int 10H", \
-modify [ AH AL ];
-
-void mode6();
-#pragma aux mode6 =	\
-"mov AH,0", \
-"mov AL,6H", \
-"int 10H", \
-modify [ AH AL ];
-
-void mode5();
-#pragma aux mode5 =	\
-"mov AH,0", \
-"mov AL,5H", \
-"int 10H", \
-modify [ AH AL ];
-
-void mode3();
-#pragma aux mode3 =	\
-"mov AH,0", \
-"mov AL,3H", \
-"int 10H", \
-modify [ AH AL ];
 
 //    on return:
 //  AH = number of screen columns
 //	AL = mode currently set (see VIDEO MODES)
 //	BH = current display page
-uint16_t get_mode();
-#pragma aux mode10 parm [ax bx cx dx] value [ax] =								\
-"mov AX,0F00H", \
-"int 10H", \
-modify [ AX ];
+uint16_t get_mode_a();
+#pragma aux get_mode_a value [ax] =								\
+"mov ax,0F00h", \
+"int 10h", \
+modify [ AX BX ];
+
+void set_mode_a(uint16_t mode);
+#pragma aux set_mode_a parm [ax] =								\
+"int 10h", \
+modify [ ax ];
+
+void set_palette_a(uint16_t ax, uint16_t bx);
+#pragma aux set_palette_a parm [ ax bx ] =		\
+"mov dx,bx", \
+"mov bh,0", \
+"mov dl,0", \
+"mov cx,ax", \
+"int 10h", \
+modify [ ax bx cx dx ];
 
 void set_mode(uint8_t mode)
 {
-	if (mode == VIDEO_MODE_13)
-		mode13();
-	if (mode == VIDEO_MODE_12)
-		mode12();
-	if (mode == VIDEO_MODE_10)
-		mode10();
-	if (mode == VIDEO_MODE_5)
-		mode5();
-	if (mode == VIDEO_MODE_6)
-		mode6();
-	if (mode == TEXT_MODE_3)
-		mode3();
+	set_mode_a((uint16_t)mode);
+}
+
+uint16_t get_mode()
+{
+	return get_mode_a();
+}
+
+void set_palette(uint8_t red, uint8_t green, uint8_t blue, uint16_t index)
+{
+	uint16_t arg1 = (((uint16_t) green >> 2) << 8) | ((uint16_t) blue >> 2);
+	uint16_t arg2 = (((uint16_t) red >> 2) << 8) | index;
+	set_palette_a(arg1, arg2);
 }

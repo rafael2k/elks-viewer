@@ -4,11 +4,12 @@
 #include <stdint.h>
 
 #define TEXT_MODE_3         0x03      /* 80x25 4-bit text mode. */
-#define VIDEO_MODE_5        0x05      /* 320x200 2-bit / CGA    */
-#define VIDEO_MODE_6        0x06      /* 640x200 1-bit / CGA    */
-#define VIDEO_MODE_10       0x10      /* 640x350 4-bit / EGA    */
-#define VIDEO_MODE_12       0x12      /* 640x480 4-bit / VGA    */
-#define VIDEO_MODE_13       0x13      /* 320x200 8-bit / VGA    */
+#define VIDEO_MODE_5        0x05      /* 320x200 2-bit / CGA B800   */
+#define VIDEO_MODE_6        0x06      /* 640x200 1-bit / CGA B800   */
+#define VIDEO_MODE_D        0x0D      /* 320x200 4-bit / EGA A000   */
+#define VIDEO_MODE_10       0x10      /* 640x350 4-bit / EGA A000   */
+#define VIDEO_MODE_12       0x12      /* 640x480 4-bit / VGA A000   */
+#define VIDEO_MODE_13       0x13      /* 320x200 8-bit / VGA A000   */
 
 
 /*
@@ -41,5 +42,6 @@ uint8_t rgb2vga(int r, int g, int b);
 void plot_pixel(int x,int y, uint8_t color);
 void set_mode(uint8_t mode);
 uint16_t get_mode();
+void set_palette(uint8_t red, uint8_t green, uint8_t blue, uint16_t index);
 
 #endif // GRAPHICS_H_

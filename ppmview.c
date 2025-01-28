@@ -158,13 +158,20 @@ int main(int arg_c, char *arg_v[])
    
    filename = arg_v[n];
 
+   uint16_t mode = get_mode();
+
    printf("Source file:      \"%s\"\n", filename);
+   printf("Current Mode:     \"%hu\"\n\n", mode & 0xff);
+   printf("Press any key to diplay the image.\n");
+   printf("Then press any key to exit!\n");
+   getchar();
 
    sleep(1);
    set_mode(VIDEO_MODE_13);
 
    int ret = ppm_load_and_display(filename, VIDEO_MODE_13);
-   sleep(10);
+
+   getchar();
    set_mode(TEXT_MODE_3);
 
    if (ret != 0)
