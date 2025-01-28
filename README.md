@@ -1,15 +1,13 @@
 # ELKS viewer
 
-Based on picojpeg for jpeg decoding.
+An optimized image viewer which runs on ELKS on Intel 8088 CPU or better.
 
-Compiled with the OW compiler.
+Based on picojpeg for jpeg decoding. Also supports BMP and PPM formats.
+
+At this point, only the Open Watcom v2 compiler is supported, together with the ELKS libc. A DOS port though would be very easy.
+
 
 ```
- Usage: eview [source_file] [dest_file] <reduce>
-    source_file: JPEG file to decode. Note: Progressive files are not supported.
-    dest_file: Output .raw file.
-    reduce: Optional, if 1 the JPEG file is quickly decoded to ~1/8th resolution.
-    
-    Outputs 8-bit grayscale or truecolor 24-bit raw files.
-
+ Usage: {jpg,bmp,ppm}view [source_file]
+    source_file: Image file to decode.
 ```
