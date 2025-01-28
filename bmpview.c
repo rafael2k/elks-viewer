@@ -159,20 +159,18 @@ int bmp_load_and_display(const char *filename, int mode)
 				uint8_t col[4];
 				fread(&col, 1, 4, fp);
 				//  blue, green, red, 0x00
-				//palette[i*3+2] = col[0] >> 2;
-				//palette[i*3+1] = col[1] >> 2;
-				//palette[i*3+0] = col[2] >> 2;
-				palette[i*3+2] = col[0]; // blue
-				palette[i*3+1] = col[1]; // grem
-				palette[i*3+0] = col[2]; // red
+				palette[i*3+2] = col[0] >> 2; // blue
+				palette[i*3+1] = col[1] >> 2; // green
+				palette[i*3+0] = col[2] >> 2; // red
 			}
 		}
 		else
 		{
 			fseek(fp, num_colors << 2, 1);
 		}
+		// fprintf(stderr, "ftell %ld\n", ftell(fp));
 
-		fprintf(stderr, "ftell %ld\n", ftell(fp));
+		// TODO: set the palette...
 
 		if (pixel_format == 4)
 		{
@@ -245,14 +243,12 @@ int bmp_load_and_display(const char *filename, int mode)
 					}
 				}
 				free(line_buffer);
-				fprintf(stderr, "ftell %u\n", ftell(fp));
 			}
 		}
 	}
 
 	if (pixel_format == 24)
 	{
-		fprintf(stderr, "ftell %ld\n", ftell(fp));
 		uint16_t line_size = width * 3;
 		line_buffer = malloc(line_size);
 
