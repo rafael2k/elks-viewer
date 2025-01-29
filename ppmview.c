@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <stdint.h>
 #include <ctype.h>
-#include <assert.h>
+#include <signal.h>
 
 #include "graphics.h"
 
@@ -18,6 +18,14 @@ extern void free(void *ptr);
 
 
 #define  MAXLINE         512
+
+void sig_handler(int signo)
+{
+	if (signo == SIGINT)
+		printf("received SIGINT\n");
+
+	set_mode(TEXT_MODE_3);
+}
 
 int isgraph(int c)
 {
@@ -158,16 +166,30 @@ int main(int arg_c, char *arg_v[])
    
    filename = arg_v[n];
 
+   if (signal(SIGINT, sig_handler) == SIG_ERR)
+	   printf("\ncan't catch SIGINT\n");
+
    uint16_t mode = get_mode();
 
    printf("Source file:      \"%s\"\n", filename);
    printf("Current Mode:     \"%hu\"\n\n", mode & 0xff);
    printf("Press any key to diplay the image.\n");
+
    printf("Then press any key to exit!\n");
    getchar();
 
    sleep(1);
    set_mode(VIDEO_MODE_13);
+
+#if 0
+   // prints the current palette
+   for (uint16_t i = 0; i < 256; i++)
+   {
+	   uint8_t red, green, blue;
+	   get_palette(&red, &green, &blue, i);
+	   printf("%hhu %hhu %hhu\n", red, green, blue);
+   }
+#endif
 
    int ret = ppm_load_and_display(filename, VIDEO_MODE_13);
 
