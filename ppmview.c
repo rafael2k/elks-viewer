@@ -12,6 +12,8 @@
 
 #include "graphics.h"
 
+// #define DEBUG
+
 extern void *malloc(size_t size);
 extern void *calloc(size_t nmemb, size_t size);
 extern void free(void *ptr);
@@ -19,12 +21,15 @@ extern void free(void *ptr);
 
 #define  MAXLINE         512
 
+uint16_t mode = 0;
+
 void sig_handler(int signo)
 {
 	if (signo == SIGINT)
 		printf("received SIGINT\n");
 
-	set_mode(TEXT_MODE_3);
+	if (mode)
+		set_mode(mode);
 }
 
 int isgraph(int c)
@@ -156,32 +161,31 @@ int ppm_load_and_display(const char *pFilename, int mode)
 //------------------------------------------------------------------------------
 int main(int arg_c, char *arg_v[])
 {
-   int n = 1;
    const char *filename;
 
    printf("ELKS PPM Viewer v0.1\n");
 
    if (arg_c != 2)
       return print_usage();
-   
-   filename = arg_v[n];
+
+   filename = arg_v[1];
 
    if (signal(SIGINT, sig_handler) == SIG_ERR)
 	   printf("\ncan't catch SIGINT\n");
 
    uint16_t mode = get_mode();
 
-   printf("Source file:      \"%s\"\n", filename);
-   printf("Current Mode:     \"%hu\"\n\n", mode & 0xff);
-   printf("Press any key to diplay the image.\n");
 
+   printf("Source File:               \"%s\"\n", filename);
+   printf("Current Graphics Mode:     \"%hu\"\n\n", mode);
+   printf("Press any key to diplay the image.\n");
    printf("Then press any key to exit!\n");
    getchar();
 
    sleep(1);
    set_mode(VIDEO_MODE_13);
 
-#if 0
+#ifdef DEBUG
    // prints the current palette
    for (uint16_t i = 0; i < 256; i++)
    {
@@ -194,7 +198,7 @@ int main(int arg_c, char *arg_v[])
    int ret = ppm_load_and_display(filename, VIDEO_MODE_13);
 
    getchar();
-   set_mode(TEXT_MODE_3);
+   set_mode(mode);
 
    if (ret != 0)
 	   fprintf(stderr, "Error reading ppm file.\n");

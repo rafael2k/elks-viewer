@@ -406,7 +406,6 @@ void set_palette_a(uint16_t ax);
 "int 10h", \
 modify [ ax bx cx dx ];
 
- // in [ax] and [ax+1] returns CH = green value CL = blue value DH = red value
 void get_palette_a(uint16_t bx);
 #pragma aux get_palette_a parm [ bx ] =		\
 "mov bh,0", \
@@ -423,7 +422,7 @@ void set_mode(uint8_t mode)
 
 uint16_t get_mode()
 {
-	return get_mode_a();
+	return get_mode_a() & 0xff;
 }
 
 void set_palette(uint8_t red, uint8_t green, uint8_t blue, uint16_t index)

@@ -29,10 +29,9 @@
 
 #include "graphics.h"
 
-#define DEBUG
+// #define DEBUG
 
 // Uncompress BMP image (either RLE8 or RLE4)
-// FROM GIMP: removed most multiplications, all divisions, and delta
 void decompress_RLE_BMP(FILE *fp, unsigned char bpp, int width, int height, uint8_t palette){
 	int xpos = 0; int ypos = 0;
 	int i,j,n;
@@ -86,7 +85,6 @@ void decompress_RLE_BMP(FILE *fp, unsigned char bpp, int width, int height, uint
 				while ((i <= i_max) && (xpos < width))
 				{
 					plot_pixel(xpos, ypos, (c >> (8-(i<<_bpp))) & ((1<<bpp)-1));
-                    // LT_tile_tempdata[y_offset + xpos] = (c >> (8-(i<<_bpp))) & ((1<<bpp)-1);
                     i++; xpos++;
                 }
             }
@@ -95,9 +93,14 @@ void decompress_RLE_BMP(FILE *fp, unsigned char bpp, int width, int height, uint
 				fseek(fp,1,SEEK_CUR);
 		}
 		// Line end
-		if ((count_val[0] == 0) && (count_val[1] == 0)){ypos++;xpos = 0;}
+		if ((count_val[0] == 0) && (count_val[1] == 0))
+		{
+			ypos++;
+			xpos = 0;
+		}
 		// Bitmap end
-		if ((count_val[0] == 0) && (count_val[1] == 1)) break;
+		if ((count_val[0] == 0) && (count_val[1] == 1))
+			break;
 		// Deltarecord. I did not find any BMP using this
         if ((count_val[0] == 0) && (count_val[1] == 2))
 		{
@@ -116,9 +119,11 @@ int bmp_load_and_display(const char *filename, int mode)
 	uint16_t width, height, num_colors;
 	uint8_t pixel_format;
 	uint8_t rle;
-	uint8_t *old_palette = NULL;
 	uint8_t *line_buffer; // max 640 pixels per line on 3 byte colors
-	int load_palette = 1; // set to 0 and no palette operation will be made
+	int load_palette = 1; // set to 0 not to touch palette registers
+#if 0
+	uint8_t *old_palette = NULL;
+#endif
 
 	FILE *fp = fopen(filename, "r");
 	if (!fp)
@@ -171,20 +176,25 @@ int bmp_load_and_display(const char *filename, int mode)
 		if (load_palette)
 		{
 			uint8_t col[4];
-			offset = 0;
+
+#if 0 // disabled code for saving and restoring the VGA palette - this is not needed as mode change triggers palette cleanup
+			uint16_t offsetp = 0;
 			printf("Saving current VGA palette.\n");
 			old_palette = malloc(num_colors * 3);
 			for(int i = 0; i < num_colors; i++)
 			{
 				get_palette(col, col+1, col+2, i);
+				old_palette[offsetp++] = col[0]; // red
+				old_palette[offsetp++] = col[1]; // green
+				old_palette[offsetp++] = col[2]; // blue
 
-				old_palette[offset++] = col[0] >> 2; // red
-				old_palette[offset++] = col[1] >> 2; // green
-				old_palette[offset++] = col[2] >> 2; // blue
 			}
+#endif
+
 #ifdef DEBUG
 			printf("Palette: \n");
 #endif
+
 			for(int i = 0; i < num_colors; i++)
 			{
 				fread(&col, 1, 4, fp);
@@ -199,9 +209,6 @@ int bmp_load_and_display(const char *filename, int mode)
 		{
 			fseek(fp, num_colors << 2, 1);
 		}
-		// fprintf(stderr, "ftell %ld\n", ftell(fp));
-
-		// TODO: set the palette...
 
 		if (pixel_format == 4)
 		{
@@ -255,6 +262,7 @@ int bmp_load_and_display(const char *filename, int mode)
 		{
 			if (rle)
 			{
+				printf("RLE for 1-bit images not supported!\n");
 				// decompress_RLE_BMP(fp,pixel_format,width,height,0);
 			}
 			else
@@ -298,30 +306,41 @@ int bmp_load_and_display(const char *filename, int mode)
 		free(line_buffer);
 	}
 
+	if (pixel_format == 16 || pixel_format == 32)
+	{
+		printf("Pixel Format %hhu: Not Yet Supported!\n",  pixel_format);
+	}
+
+
+#if 0 // we are not saving nor restoring the old palette
 	if (pixel_format <= 8 && load_palette && old_palette)
 	{
-		// for (int i = 0; i < num_colors; i++)
 		printf("Restoring palette.\n");
-		int offset = 0;
+		uint16_t offsetp = 0;
 		for(int i = 0; i < num_colors; i++)
 		{
-			set_palette(old_palette[offset], old_palette[offset+1], old_palette[offset+2], i);
-			offset += 3;
+			set_palette(old_palette[offsetp], old_palette[offsetp+1], old_palette[offsetp+2], i);
+			offsetp += 3;
 		}
 		free(old_palette);
 	}
-
+#endif
 
 	return 0;
 
 }
+
+uint16_t mode = 0;
+
 
 void sig_handler(int signo)
 {
 	if (signo == SIGINT)
 		printf("received SIGINT\n");
 
-	set_mode(TEXT_MODE_3);
+	// revert to mode in use when software was started
+	if (mode)
+		set_mode(mode);
 }
 
 static int print_usage()
@@ -334,27 +353,26 @@ static int print_usage()
    return EXIT_FAILURE;
 }
 
-int main(int arg_c, char *arg_v[])
+int main(int argc, char *argv[])
 {
-   int n = 1;
    const char *filename;
 
    printf("ELKS BMP Viewer v0.1\n");
 
-   if (arg_c != 2)
+   if (argc != 2)
       return print_usage();
 
-   filename = arg_v[n];
+   mode = 0;
+   filename = argv[1];
 
    if (signal(SIGINT, sig_handler) == SIG_ERR)
 	   printf("\ncan't catch SIGINT\n");
 
-   uint16_t mode = get_mode();
+   mode = get_mode();
 
-   printf("Source file:      \"%s\"\n", filename);
-   printf("Current Mode:     \"%hu\"\n\n", mode & 0xff);
+   printf("Source File:               \"%s\"\n", filename);
+   printf("Current Graphics Mode:     \"%hu\"\n\n", mode);
    printf("Press any key to diplay the image.\n");
-
    printf("Then press any key to exit!\n");
    getchar();
 
@@ -383,7 +401,7 @@ int main(int arg_c, char *arg_v[])
 #endif
 
    getchar();
-   set_mode(TEXT_MODE_3);
+   set_mode(mode);
 
    if (ret != 0)
 	   fprintf(stderr, "Error reading bmp file.\n");
