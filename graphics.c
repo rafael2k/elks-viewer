@@ -11,7 +11,85 @@
 uint8_t __far *CGA = (void __far *)0xB8000000L;        /* this points to video CGA memory. */
 uint8_t __far *VGA = (void __far *)0xA0000000L;        /* this points to video VGA memory. */
 
+// this is just for mode 13h. TODO: make this generic
+void plot_pixel(int x,int y, uint8_t color)
+{
+     /*  y*320 = y*256 + y*64 = y*2^8 + y*2^6   */
+	int offset = (y<<8)+(y<<6)+x;
+	VGA[offset] = color;
+}
 
+
+//    on return:
+//  AH = number of screen columns
+//	AL = mode currently set (see VIDEO MODES)
+//	BH = current display page
+uint16_t get_mode_a();
+#pragma aux get_mode_a value [ax] =								\
+"mov ax,0F00h", \
+"int 10h", \
+modify [ ax bx ];
+
+void set_mode_a(uint16_t mode);
+#pragma aux set_mode_a parm [ax] =								\
+"int 10h", \
+modify [ ax ];
+
+uint16_t pal_cx, pal_dx;
+
+void set_palette_a(uint16_t ax);
+#pragma aux set_palette_a parm [ ax ] =		\
+"mov bx,ax", \
+"mov cx,pal_cx", \
+"mov dx,pal_dx", \
+"mov ax, 1010h", \
+"int 10h", \
+modify [ ax bx cx dx ];
+
+void get_palette_a(uint16_t bx);
+#pragma aux get_palette_a parm [ bx ] =		\
+"mov bh,0", \
+"mov ax,1015h",									\
+"int 10h",															\
+"mov pal_cx,cx", \
+"mov pal_dx,dx", \
+modify [ ax bx cx dx ];
+
+void set_mode(uint8_t mode)
+{
+	set_mode_a((uint16_t)mode);
+}
+
+uint16_t get_mode()
+{
+	return get_mode_a() & 0xff;
+}
+
+void set_palette(uint8_t red, uint8_t green, uint8_t blue, uint16_t index)
+{
+	pal_cx = ((green >> 2) << 8) | (blue >> 2);
+	pal_dx = (red >> 2) << 8;
+
+	set_palette_a(index);
+
+}
+
+// returns the palette of index in colors[0,1,2]
+void get_palette(uint8_t *red, uint8_t *green, uint8_t *blue, uint16_t index)
+{
+	get_palette_a(index);
+
+	*red = (uint8_t) ((pal_dx >> 8) << 2);
+	*green = (uint8_t) (pal_cx >> 8) << 2;
+	*blue = (uint8_t) (pal_cx & 0xff) << 2;
+}
+
+uint8_t __far *get_video_pointer()
+{
+	return VGA;
+}
+
+// Everything below here will be deleted as we don't need the default VGA palette for nothing basically..
 uint8_t vgapal[256][3] = {
     /* colors 0-15 */
     {0x00, 0x00, 0x00},
@@ -338,11 +416,6 @@ uint8_t vgapal[256][3] = {
 
 };
 
-uint8_t __far *get_video_pointer()
-{
-	return VGA;
-}
-
 uint8_t rgb2vga(int r, int g, int b) {
 
 	int closest = 32000;
@@ -368,78 +441,4 @@ uint8_t rgb2vga(int r, int g, int b) {
 	}
 
 	return (uint8_t)ndx;
-}
-
-void plot_pixel(int x,int y, uint8_t color)
-{
-	// x + (y*320)
-     /*  y*320 = y*256 + y*64 = y*2^8 + y*2^6   */
-    int offset = (y<<8)+(y<<6)+x;
-	VGA[offset] = color;
-}
-
-
-
-//    on return:
-//  AH = number of screen columns
-//	AL = mode currently set (see VIDEO MODES)
-//	BH = current display page
-uint16_t get_mode_a();
-#pragma aux get_mode_a value [ax] =								\
-"mov ax,0F00h", \
-"int 10h", \
-modify [ ax bx ];
-
-void set_mode_a(uint16_t mode);
-#pragma aux set_mode_a parm [ax] =								\
-"int 10h", \
-modify [ ax ];
-
-uint16_t pal_cx, pal_dx;
-
-void set_palette_a(uint16_t ax);
-#pragma aux set_palette_a parm [ ax ] =		\
-"mov bx,ax", \
-"mov cx,pal_cx", \
-"mov dx,pal_dx", \
-"mov ax, 1010h", \
-"int 10h", \
-modify [ ax bx cx dx ];
-
-void get_palette_a(uint16_t bx);
-#pragma aux get_palette_a parm [ bx ] =		\
-"mov bh,0", \
-"mov ax,1015h",									\
-"int 10h",															\
-"mov pal_cx,cx", \
-"mov pal_dx,dx", \
-modify [ ax bx cx dx ];
-
-void set_mode(uint8_t mode)
-{
-	set_mode_a((uint16_t)mode);
-}
-
-uint16_t get_mode()
-{
-	return get_mode_a() & 0xff;
-}
-
-void set_palette(uint8_t red, uint8_t green, uint8_t blue, uint16_t index)
-{
-	pal_cx = ((green >> 2) << 8) | (blue >> 2);
-	pal_dx = (red >> 2) << 8;
-
-	set_palette_a(index);
-
-}
-
-// returns the palette of index in colors[0,1,2]
-void get_palette(uint8_t *red, uint8_t *green, uint8_t *blue, uint16_t index)
-{
-	get_palette_a(index);
-
-	*red = (uint8_t) ((pal_dx >> 8) << 2);
-	*green = (uint8_t) (pal_cx >> 8) << 2;
-	*blue = (uint8_t) (pal_cx & 0xff) << 2;
 }
