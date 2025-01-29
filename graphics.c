@@ -395,17 +395,16 @@ void set_mode_a(uint16_t mode);
 "int 10h", \
 modify [ ax ];
 
-void set_palette_a(uint16_t ax, uint16_t bx);
-#pragma aux set_palette_a parm [ ax bx ] =		\
-"mov dx,bx", \
-"mov bh,0", \
-"mov dl,0", \
-"mov cx,ax", \
+uint16_t pal_cx, pal_dx;
+
+void set_palette_a(uint16_t ax);
+#pragma aux set_palette_a parm [ ax ] =		\
+"mov bx,ax", \
+"mov cx,pal_cx", \
+"mov dx,pal_dx", \
 "mov ax, 1010h", \
 "int 10h", \
 modify [ ax bx cx dx ];
-
-uint16_t pal_cx, pal_dx;
 
  // in [ax] and [ax+1] returns CH = green value CL = blue value DH = red value
 void get_palette_a(uint16_t bx);
@@ -429,9 +428,11 @@ uint16_t get_mode()
 
 void set_palette(uint8_t red, uint8_t green, uint8_t blue, uint16_t index)
 {
-	uint16_t arg1 = (((uint16_t) green >> 2) << 8) | ((uint16_t) blue >> 2);
-	uint16_t arg2 = (((uint16_t) red >> 2) << 8) | index;
-	set_palette_a(arg1, arg2);
+	pal_cx = ((green >> 2) << 8) | (blue >> 2);
+	pal_dx = (red >> 2) << 8;
+
+	set_palette_a(index);
+
 }
 
 // returns the palette of index in colors[0,1,2]
@@ -439,7 +440,7 @@ void get_palette(uint8_t *red, uint8_t *green, uint8_t *blue, uint16_t index)
 {
 	get_palette_a(index);
 
-	*red = (pal_dx >> 8) << 2;
-	*green = (pal_cx >> 8) << 2;
-	*blue = (pal_cx & 0xff) << 2;
+	*red = (uint8_t) ((pal_dx >> 8) << 2);
+	*green = (uint8_t) (pal_cx >> 8) << 2;
+	*blue = (uint8_t) (pal_cx & 0xff) << 2;
 }

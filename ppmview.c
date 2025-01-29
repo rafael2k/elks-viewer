@@ -1,4 +1,4 @@
-// ELKS image viewer
+// ELKS PPM Viewer
 
 #include <stdlib.h>
 #include <stdio.h>
