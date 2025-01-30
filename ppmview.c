@@ -105,8 +105,7 @@ int ppm_load_and_display(const char *pFilename, int mode)
 	uint16_t line_size = width * 3;
 	line_buffer = malloc(line_size);
 
-	load_palette1(13);
-
+	load_palette1(VIDEO_MODE_13);
 
 	// read now a whole line before writing to screen
 	for(i = 0; i < height; i++)
@@ -173,11 +172,10 @@ int main(int arg_c, char *arg_v[])
 
    filename = arg_v[1];
 
+   mode = get_mode();
+
    if (signal(SIGINT, sig_handler) == SIG_ERR)
 	   printf("\ncan't catch SIGINT\n");
-
-   uint16_t mode = get_mode();
-
 
    printf("Source File:               \"%s\"\n", filename);
    printf("Current Graphics Mode:     \"%hu\"\n\n", mode);
@@ -185,7 +183,6 @@ int main(int arg_c, char *arg_v[])
    printf("Then press any key to exit!\n");
    getchar();
 
-   sleep(1);
    set_mode(VIDEO_MODE_13);
 
 #ifdef DEBUG

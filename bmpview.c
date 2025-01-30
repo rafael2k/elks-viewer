@@ -292,7 +292,7 @@ int bmp_load_and_display(const char *filename, int mode)
 		line_buffer = malloc(line_size);
 
 		// now load an optimized pallet for RGB to 8-bit conversion
-		load_palette1(13);
+		load_palette1(VIDEO_MODE_13);
 
 		for(int i = height - 1; i >= 0; i--)
 		{
@@ -365,13 +365,13 @@ int main(int argc, char *argv[])
    if (argc != 2)
       return print_usage();
 
-   mode = 0;
    filename = argv[1];
+
+   mode = get_mode();
 
    if (signal(SIGINT, sig_handler) == SIG_ERR)
 	   printf("\ncan't catch SIGINT\n");
 
-   mode = get_mode();
 
    printf("Source File:               \"%s\"\n", filename);
    printf("Current Graphics Mode:     \"%hu\"\n\n", mode);
