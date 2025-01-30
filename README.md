@@ -5,8 +5,8 @@ An optimized image viewer which runs on ELKS on Intel 8088 CPU or better.
 
 ELKS Viewer is composed by standalone viewers:
 - bmpview: Supports 1, 4, 8 and 24 bits BMP (run-length encoding also supported)
-- ppmview: Supports PPM and PGM formats for presentation
-- jpgview: A JPEG viewer with support for colored and grayscale pictures
+- ppmview: Supports PPM and PGM formats
+- jpgview: A JPEG viewer which supports coloured and grayscale images
 
 JPEG decoding uses PicoJPEG.
 
