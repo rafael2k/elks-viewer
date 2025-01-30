@@ -91,7 +91,23 @@ uint8_t __far *get_video_pointer()
 	return VGA;
 }
 
-// our format here is RRRGGGBB
+
+// this is our grayscale palette
+void load_palette1g(uint8_t mode)
+{
+	if (mode == 13)
+	{
+		int num_colors = 256;
+
+		for(int i = 0; i < num_colors; i++)
+		{
+			set_palette((uint8_t)i, (uint8_t)i, (uint8_t)i, i);
+		}
+	}
+}
+
+
+// format for light conversion (palette1) is RRRGGGBB
 void load_palette1(uint8_t mode)
 {
 	uint8_t red, green, blue;

@@ -40,9 +40,9 @@ int isgraph(int c)
 static int print_usage()
 {
    printf("Usage: ppmview [source_file.ppm]\n");
-   printf("source_file: PPM file to decode.\n");
+   printf("source_file: PPM or PGM file to decode.\n");
    printf("\n");
-   printf("Displays a ppm image in the screen.\n");
+   printf("Displays a ppm or pgm image in the screen.\n");
    printf("\n");
    return EXIT_FAILURE;
 }
@@ -55,6 +55,7 @@ int ppm_load_and_display(const char *pFilename, int mode)
 	char line[MAXLINE];
 	int count=0;
 	int is_ascii = 0;
+	int is_gray = 0;
 	uint8_t *line_buffer;
 
 	FILE *f = fopen(pFilename, "rb");
@@ -90,22 +91,40 @@ int ppm_load_and_display(const char *pFilename, int mode)
 		}
 	}
 
-	if (strcmp(magic, "P3") == 0) {
+	if (strcmp(magic, "P2") == 0) {
 		is_ascii = 1;
+		is_gray = 1;
+	}
+	else if (strcmp(magic, "P3") == 0) {
+		is_ascii = 1;
+		is_gray = 0;
 	} else if (strcmp(magic, "P6") == 0) {
 		is_ascii = 0;
-	} else {
-		fprintf(stderr, "Error: Input file not in PPM format!\n");
+		is_gray = 0;
+	} else if (strcmp(magic, "P5") == 0) {
+		is_ascii = 0;
+		is_gray = 1;
+	}
+	else {
+		fprintf(stderr, "Error: Input file not in PPM (P3 or P6) or PGM (P2 or P5) format!\n");
 		return -1;
 	}
 	int c, r_val, g_val, b_val;
 	int j = 0;
 	uint32_t offset = 0;
 
-	uint16_t line_size = width * 3;
+	uint16_t line_size;
+	if (is_gray)
+		line_size = width;
+	else
+		line_size = width * 3;
+
 	line_buffer = malloc(line_size);
 
-	load_palette1(VIDEO_MODE_13);
+	if (is_gray)
+		load_palette1g(VIDEO_MODE_13);
+	else
+		load_palette1(VIDEO_MODE_13);
 
 	// read now a whole line before writing to screen
 	for(i = 0; i < height; i++)
@@ -114,11 +133,11 @@ int ppm_load_and_display(const char *pFilename, int mode)
 			ungetc(c, f);
 		else
 		{
-			fprintf(stderr, "Premature end-of-file?\n");
+			fprintf(stderr, "Premature end-of-file.\n");
 			break;
 		}
 
-		if (is_ascii == 1) // ascii mode
+		if (is_ascii == 1 && is_gray == 0) // PPM P3
 		{
 			offset = 0;
 			for ( j = 0; j < width; j++ )
@@ -141,7 +160,7 @@ int ppm_load_and_display(const char *pFilename, int mode)
 			}
 
 		}
-		else // binary mode
+		else if (is_ascii == 0 && is_gray == 0) // PPM P6
 		{
 			offset = 0;
 			fread(line_buffer, 1, line_size, f);
@@ -153,6 +172,31 @@ int ppm_load_and_display(const char *pFilename, int mode)
 				offset += 3;
 			}
 		}
+		else if (is_ascii == 1 && is_gray == 1) // PGM P2
+		{
+			for ( j = 0; j < width; j++ )
+			{
+				if (fscanf(f, "%d", &r_val) != 1)
+					return -1;
+
+				line_buffer[j] = r_val;
+			}
+
+			for (j = 0; j < width; j++)
+			{
+				plot_pixel(j, i, line_buffer[j]);
+			}
+		}
+		else if (is_ascii == 0 && is_gray == 1) // PGM P5
+		{
+			fread(line_buffer, 1, line_size, f);
+
+			for (j = 0; j < width; j++)
+			{
+				plot_pixel(j, i, line_buffer[j]);
+			}
+		}
+
 	}
 
 	free(line_buffer);

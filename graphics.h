@@ -45,6 +45,8 @@ void set_palette(uint8_t red, uint8_t green, uint8_t blue, uint16_t index);
 void get_palette(uint8_t *red, uint8_t *green, uint8_t *blue, uint16_t index);
 
 void load_palette1(uint8_t mode);
+void load_palette1g(uint8_t mode);
+
 uint8_t rgb2palette1(uint8_t r, uint8_t g, uint8_t b);
 
 // this is very slow - don't use it
