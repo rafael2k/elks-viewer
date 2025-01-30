@@ -306,9 +306,7 @@ int main(int arg_c, char *arg_v[])
    printf("Current Graphics Mode:     \"%hu\"\n\n", mode);
    printf("Press any key to diplay the image.\n");
    printf("Then press any key to exit!\n");
-   getchar();
 
-   set_mode(VIDEO_MODE_13);
 
    pImage = pjpeg_load_from_file(pSrc_filename, &width, &height, &comps, &scan_type, reduce);
    if (!pImage)
@@ -316,8 +314,6 @@ int main(int arg_c, char *arg_v[])
       printf("Failed loading source image!\n");
       return EXIT_FAILURE;
    }
-
-   printf("Width: %i, Height: %i, Comps: %i\n", width, height, comps);
 
    switch (scan_type)
    {
@@ -327,10 +323,16 @@ int main(int arg_c, char *arg_v[])
       case PJPG_YH1V2: p = "H1V2"; break;
       case PJPG_YH2V2: p = "H2V2"; break;
    }
-   printf("Scan type: %s\n", p);
 
+   printf("Width: %i, Height: %i, Comps: %i, Scan type: %s\n", width, height, comps, p);
 
-	load_palette1(VIDEO_MODE_13);
+   getchar();
+
+   set_mode(VIDEO_MODE_13);
+   if (scan_type == PJPG_GRAYSCALE)
+       load_palette1g(VIDEO_MODE_13);
+   else
+       load_palette1(VIDEO_MODE_13);
 
    // the buffer can not be >= 64kB
    int y; int x;
@@ -340,12 +342,20 @@ int main(int arg_c, char *arg_v[])
        for (x = 0; x < width; x++)
        {
 //   fprintf(stderr, "%d %d %d\n", pixel[0], pixel[1], pixel[2]);
-           uint8_t eightBitColor = rgb2palette1(pImage[off], pImage[off + 1], pImage[off + 2]);;
-           off += 3;
-           plot_pixel(x, y, eightBitColor);
+           if (scan_type == PJPG_GRAYSCALE)
+           {
+               plot_pixel(x, y, pImage[off++]);
+           }
+           else
+           {
+               uint8_t eightBitColor = rgb2palette1(pImage[off], pImage[off + 1], pImage[off + 2]);;
+               off += 3;
+               plot_pixel(x, y, eightBitColor);
+           }
        }
    }
-   sleep (10);
+   getchar();
+
    set_mode(TEXT_MODE_3);
 
 #if 0
