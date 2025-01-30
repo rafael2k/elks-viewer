@@ -57,7 +57,7 @@ void decompress_RLE_BMP(FILE *fp, unsigned char bpp, int width, int height, uint
 			{
 				for (i = 1;((i <= (8 >> _bpp)) && (xpos < width) && ( j < count_val[0]));i++, xpos++, j++)
 				{
-					plot_pixel(xpos, ypos, (count_val[1] & (((1<<bpp)-1) << (8 - (i << _bpp)))) >> (8 - (i << _bpp)));
+					plot_pixel(xpos, height - ypos, (count_val[1] & (((1<<bpp)-1) << (8 - (i << _bpp)))) >> (8 - (i << _bpp)));
 					//LT_tile_tempdata[y_offset + xpos] = (count_val[1] & (((1<<bpp)-1) << (8 - (i << _bpp)))) >> (8 - (i << _bpp));
 				}
 			}
@@ -84,7 +84,7 @@ void decompress_RLE_BMP(FILE *fp, unsigned char bpp, int width, int height, uint
                 i = 1;
 				while ((i <= i_max) && (xpos < width))
 				{
-					plot_pixel(xpos, ypos, (c >> (8-(i<<_bpp))) & ((1<<bpp)-1));
+					plot_pixel(xpos, height - ypos, (c >> (8-(i<<_bpp))) & ((1<<bpp)-1));
                     i++; xpos++;
                 }
             }
@@ -291,6 +291,9 @@ int bmp_load_and_display(const char *filename, int mode)
 		uint16_t line_size = width * 3;
 		line_buffer = malloc(line_size);
 
+		// now load an optimized pallet for RGB to 8-bit conversion
+		load_palette1(13);
+
 		for(int i = height - 1; i >= 0; i--)
 		{
 			offset = 0;
@@ -298,7 +301,7 @@ int bmp_load_and_display(const char *filename, int mode)
 
 			for (int j = 0; j < width; j++)
 			{
-				uint8_t pixel = rgb2vga(line_buffer[offset+2], line_buffer[offset+1], line_buffer[offset]); // blue, green and red
+				uint8_t pixel = rgb2palette1(line_buffer[offset+2], line_buffer[offset+1], line_buffer[offset]); // blue, green and red
 				plot_pixel(j, i, pixel);
 				offset += 3;
 			}

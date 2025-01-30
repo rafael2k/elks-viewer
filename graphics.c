@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+// #define DEBUG
+
 // Reference: https://www.chibialiens.com/8086/platform.php?noui=1
 uint8_t __far *CGA = (void __far *)0xB8000000L;        /* this points to video CGA memory. */
 uint8_t __far *VGA = (void __far *)0xA0000000L;        /* this points to video VGA memory. */
@@ -87,6 +89,54 @@ void get_palette(uint8_t *red, uint8_t *green, uint8_t *blue, uint16_t index)
 uint8_t __far *get_video_pointer()
 {
 	return VGA;
+}
+
+// our format here is RRRGGGBB
+void load_palette1(uint8_t mode)
+{
+	uint8_t red, green, blue;
+	uint8_t color;
+	if (mode == 13)
+	{
+		int num_colors = 256;
+		red = 0;
+		green = 0;
+		blue = 0;
+
+		for(int i = 0; i < num_colors; i++)
+		{
+			color = (red << 5) | (green << 2) | (blue & 0x3);
+
+			set_palette(red << 5, green << 5, blue << 6, color);
+
+			red++;
+			if (red == 8)
+			{
+				green++;
+				red = 0;
+			}
+			if (green == 8)
+			{
+				blue++;
+				green = 0;
+			}
+			if (blue == 4)
+			{
+				blue = 0;
+			}
+
+#ifdef DEBUG
+			printf("%hhu %hhu %hhu %hhu\n", color, red << 5, green << 5, blue << 6);
+#endif
+
+		}
+
+	}
+}
+
+uint8_t rgb2palette1(uint8_t r, uint8_t g, uint8_t b)
+{
+	return ((r >> 5) << 5) | ((g >> 5) << 2) | (b >> 6);
 }
 
 // Everything below here will be deleted as we don't need the default VGA palette for nothing basically..
