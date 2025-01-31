@@ -177,6 +177,7 @@ uint8_t rgb2palette1(uint8_t r, uint8_t g, uint8_t b)
 }
 
 // Everything below here will be deleted as we don't need the default VGA palette for nothing basically..
+#if 0
 uint8_t vgapal[256][3] = {
     /* colors 0-15 */
     {0x00, 0x00, 0x00},
@@ -529,3 +530,4 @@ uint8_t rgb2vga(int r, int g, int b) {
 
 	return (uint8_t)ndx;
 }
+#endif
