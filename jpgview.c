@@ -36,7 +36,10 @@ extern void *malloc(size_t size);
 extern void *calloc(size_t nmemb, size_t size);
 extern void free(void *ptr);
 
-//------------------------------------------------------------------------------
+static FILE *g_pInFile;
+static uint32_t g_nInFileSize;
+static uint32_t g_nInFileOfs;
+
 #ifndef max
 #define max(a,b)    (((a) > (b)) ? (a) : (b))
 #endif
@@ -65,11 +68,7 @@ static int print_usage()
    printf("Outputs 8-bit grayscale or truecolor 24-bit raw files.\n");
    return EXIT_FAILURE;
 }
-//------------------------------------------------------------------------------
-static FILE *g_pInFile;
-static uint32_t g_nInFileSize;
-static uint32_t g_nInFileOfs;
-//------------------------------------------------------------------------------
+
 unsigned char pjpeg_need_bytes_callback(unsigned char* pBuf, unsigned char buf_size, unsigned char *pBytes_actually_read, void *pCallback_data)
 {
    uint32_t n;
@@ -83,8 +82,8 @@ unsigned char pjpeg_need_bytes_callback(unsigned char* pBuf, unsigned char buf_s
    return 0;
 }
 //------------------------------------------------------------------------------
-// Loads JPEG image from specified file. Returns NULL on failure.
-// On success, the malloc()'d image's width/height is written to *x and *y, and
+// Loads JPEG image from specified file and displays it. Returns < 0 on failure.
+// On success, 0 is returned, image's width/height is written to *x and *y, and
 // the number of components (1 or 3) is written to *comps.
 // pScan_type can be NULL, if not it'll be set to the image's pjpeg_scan_type_t.
 // Not thread safe.
@@ -276,7 +275,6 @@ int pjpeg_load_and_display(const char *pFilename, int *x, int *y, int *comps, pj
    return 0;
 }
 
-//------------------------------------------------------------------------------
 int main(int arg_c, char *arg_v[])
 {
    int n = 1;
@@ -334,5 +332,3 @@ int main(int arg_c, char *arg_v[])
 
    return EXIT_SUCCESS;
 }
-//------------------------------------------------------------------------------
-
