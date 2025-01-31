@@ -81,7 +81,7 @@ unsigned char pjpeg_need_bytes_callback(unsigned char* pBuf, unsigned char buf_s
    g_nInFileOfs += n;
    return 0;
 }
-//------------------------------------------------------------------------------
+
 // Loads JPEG image from specified file and displays it. Returns < 0 on failure.
 // On success, 0 is returned, image's width/height is written to *x and *y, and
 // the number of components (1 or 3) is written to *comps.
