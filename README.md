@@ -23,6 +23,16 @@ At this point, only the Open Watcom v2 compiler is supported, and the software i
 In order to build ELKS viewer tools, you need Open Watcom v2 installed, and ELKS libc compiled for OpenWatcom. For it, you need ELKS source code, available at
 https://github.com/ghaerr/elks/ and follow the steps to build the ELKS libc as explained here: https://github.com/ghaerr/elks/wiki/Using-OpenWatcom-C-with-ELKS
 
+On Linux, for example, do the following:
+```
+cd ~/elks
+. env.sh
+. /usr/bin/watcom/owsetenv.sh
+cd libc
+make -f watcom.mk
+cd ~/elks-viewer
+```
+
 Then, with all the setup ready and environment variables set, type
 ```
 make -f Makefile.elks
