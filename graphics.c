@@ -133,6 +133,7 @@ void load_palette1(uint8_t mode)
 {
 	uint8_t red, green, blue;
 	uint8_t color;
+
 	if (mode == VIDEO_MODE_13)
 	{
 		int num_colors = 256;
@@ -144,7 +145,11 @@ void load_palette1(uint8_t mode)
 		{
 			color = (red << 5) | (green << 2) | (blue & 0x3);
 
-			set_palette(red << 5, green << 5, blue << 6, color);
+			set_palette((red << 5) + 16, (green << 5) + 16, (blue << 6) + 32, color);
+
+#ifdef DEBUG
+			fprintf(stderr, "%hhu %hhu %hhu %hhu\n", color, (red << 5) + 16, (green << 5) + 16, (blue << 6) + 32);
+#endif
 
 			red++;
 			if (red == 8)
@@ -162,19 +167,43 @@ void load_palette1(uint8_t mode)
 				blue = 0;
 			}
 
-#ifdef DEBUG
-			printf("%hhu %hhu %hhu %hhu\n", color, red << 5, green << 5, blue << 6);
-#endif
-
 		}
-
 	}
 }
 
+// simple and works
 uint8_t rgb2palette1(uint8_t r, uint8_t g, uint8_t b)
 {
 	return ((r >> 5) << 5) | ((g >> 5) << 2) | (b >> 6);
 }
+
+#if 0
+// v2, some testing, but we prefer speed over beatifulness for now
+uint8_t rgb2palette1(uint8_t r, uint8_t g, uint8_t b)
+{
+	uint8_t red;
+	uint8_t green;
+	uint8_t blue;
+
+	if ((r & 0x10) && ((r & 0xF0) != 0xF0) )
+		red = ((r >> 5) + 1) << 5;
+	else
+		red = (r >> 5) << 5;
+
+	if ((g & 0x10) && ((g & 0xF0) != 0xF0) )
+		green = ((g >> 5) + 1) << 2;
+	else
+		green = (g >> 5) << 2;
+
+	if ((b & 0x20) && ((b & 0xE0) != 0xE0) )
+		blue = (b >> 6) + 1;
+	else
+		blue = b >> 6;
+
+	return red | green | blue;
+}
+#endif
+
 
 // Everything below here will be deleted as we don't need the default VGA palette for nothing basically..
 #if 0
