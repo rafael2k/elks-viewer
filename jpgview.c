@@ -284,7 +284,7 @@ int main(int arg_c, char *arg_v[])
    const char* p = "?";
    int reduce = 0;
    
-   printf("ELKS PPM Viewer v0.1\n");
+   printf("ELKS JPEG Viewer v0.1\n");
    printf("Based on PicoJPEG\n");
 
    if ((arg_c < 2) || (arg_c > 3))
