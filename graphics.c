@@ -169,7 +169,7 @@ static void get_palette_a(uint16_t index, uint16_t *cx, uint16_t *dx)
 #endif
 
 // this is just for mode 13h. TODO: make this generic
-void plot_pixel(int x,int y, uint8_t color)
+void drawpixel(int x,int y, uint8_t color)
 {
      /*  y*320 = y*256 + y*64 = y*2^8 + y*2^6   */
 	int offset = (y<<8)+(y<<6)+x;

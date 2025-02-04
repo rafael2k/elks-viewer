@@ -57,7 +57,7 @@ void decompress_RLE_BMP(FILE *fp, unsigned char bpp, int width, int height, uint
 			{
 				for (i = 1;((i <= (8 >> _bpp)) && (xpos < width) && ( j < count_val[0]));i++, xpos++, j++)
 				{
-					plot_pixel(xpos, height - ypos, (count_val[1] & (((1<<bpp)-1) << (8 - (i << _bpp)))) >> (8 - (i << _bpp)));
+					drawpixel(xpos, height - ypos, (count_val[1] & (((1<<bpp)-1) << (8 - (i << _bpp)))) >> (8 - (i << _bpp)));
 					//LT_tile_tempdata[y_offset + xpos] = (count_val[1] & (((1<<bpp)-1) << (8 - (i << _bpp)))) >> (8 - (i << _bpp));
 				}
 			}
@@ -84,7 +84,7 @@ void decompress_RLE_BMP(FILE *fp, unsigned char bpp, int width, int height, uint
                 i = 1;
 				while ((i <= i_max) && (xpos < width))
 				{
-					plot_pixel(xpos, height - ypos, (c >> (8-(i<<_bpp))) & ((1<<bpp)-1));
+					drawpixel(xpos, height - ypos, (c >> (8-(i<<_bpp))) & ((1<<bpp)-1));
                     i++; xpos++;
                 }
             }
@@ -226,8 +226,8 @@ int bmp_load_and_display(const char *filename, int mode)
 
 					for (int j = 0; j < line_size; j++)
 					{
-						plot_pixel(j<<1, i, line_buffer[j] >> 4);
-						plot_pixel((j<<1)+1, i, line_buffer[j] & 0x0F);
+						drawpixel(j<<1, i, line_buffer[j] >> 4);
+						drawpixel((j<<1)+1, i, line_buffer[j] & 0x0F);
 					}
 				}
 				free(line_buffer);
@@ -251,7 +251,7 @@ int bmp_load_and_display(const char *filename, int mode)
 
 					for (int j = 0; j < line_size; j++)
 					{
-						plot_pixel(j, i, line_buffer[j]);
+						drawpixel(j, i, line_buffer[j]);
 					}
 				}
 				free(line_buffer);
@@ -278,7 +278,7 @@ int bmp_load_and_display(const char *filename, int mode)
 					{
 						int x_off = j << 3;
 						for (int offset = 7; offset >= 0; offset--)
-							plot_pixel(x_off + offset, i, (line_buffer[j] >> (7 - offset)) & 1);
+							drawpixel(x_off + offset, i, (line_buffer[j] >> (7 - offset)) & 1);
 					}
 				}
 				free(line_buffer);
@@ -302,7 +302,7 @@ int bmp_load_and_display(const char *filename, int mode)
 			for (int j = 0; j < width; j++)
 			{
 				uint8_t pixel = rgb2palette1(line_buffer[offset+2], line_buffer[offset+1], line_buffer[offset]); // blue, green and red
-				plot_pixel(j, i, pixel);
+				drawpixel(j, i, pixel);
 				offset += 3;
 			}
 		}

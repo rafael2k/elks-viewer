@@ -57,7 +57,7 @@
 
 
 uint8_t __far *get_video_pointer();
-void plot_pixel(int x,int y, uint8_t color);
+void drawpixel(int x,int y, uint8_t color);
 void set_mode(uint8_t mode);
 uint16_t get_mode();
 void set_palette(uint8_t red, uint8_t green, uint8_t blue, uint16_t index);

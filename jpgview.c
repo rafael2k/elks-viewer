@@ -181,7 +181,7 @@ int pjpeg_load_and_display(const char *pFilename, int *x, int *y, int *comps, pj
 
          if (image_info.m_scanType == PJPG_GRAYSCALE)
          {
-			 plot_pixel(xx, yy, image_info.m_pMCUBufR[0]);
+			 drawpixel(xx, yy, image_info.m_pMCUBufR[0]);
          }
          else
          {
@@ -192,7 +192,7 @@ int pjpeg_load_and_display(const char *pFilename, int *x, int *y, int *comps, pj
                 for (x = 0; x < row_blocks_per_mcu; x++)
                 {
 					uint8_t pixel = rgb2palette1(image_info.m_pMCUBufR[src_ofs], image_info.m_pMCUBufG[src_ofs], image_info.m_pMCUBufB[src_ofs]);
-					plot_pixel(xx + x, yy + y, pixel);
+					drawpixel(xx + x, yy + y, pixel);
                     src_ofs += 64;
                 }
 
@@ -227,7 +227,7 @@ int pjpeg_load_and_display(const char *pFilename, int *x, int *y, int *comps, pj
 					  for (by = 0; by < by_limit; by++)
 					  {
 						  for (bx = 0; bx < bx_limit; bx++)
-							  plot_pixel(xx + x + bx, yy + y + by, *pSrcR++);
+							  drawpixel(xx + x + bx, yy + y + by, *pSrcR++);
 
 						  pSrcR += (8 - bx_limit);
 					  }
@@ -241,7 +241,7 @@ int pjpeg_load_and_display(const char *pFilename, int *x, int *y, int *comps, pj
 						  for (bx = 0; bx < bx_limit; bx++)
 						  {
 							  uint8_t pixel = rgb2palette1(*pSrcR, *pSrcG, *pSrcB);
-							  plot_pixel(xx + x + bx, yy + y + by, pixel);
+							  drawpixel(xx + x + bx, yy + y + by, pixel);
 							  pSrcR++;
 							  pSrcG++;
 							  pSrcB++;

@@ -172,7 +172,7 @@ int ppm_load_and_display(const char *pFilename, int mode)
 			for (j = 0; j < width; j++)
 			{
 				uint8_t pixel = rgb2palette1(line_buffer[offset], line_buffer[offset + 1], line_buffer[offset + 2]);
-				plot_pixel(j, i, pixel);
+				drawpixel(j, i, pixel);
 				offset += 3;
 			}
 
@@ -185,7 +185,7 @@ int ppm_load_and_display(const char *pFilename, int mode)
 			for (j = 0; j < width; j++)
 			{
 				uint8_t pixel = rgb2palette1(line_buffer[offset], line_buffer[offset + 1], line_buffer[offset + 2]);
-				plot_pixel(j, i, pixel);
+				drawpixel(j, i, pixel);
 				offset += 3;
 			}
 		}
@@ -201,7 +201,7 @@ int ppm_load_and_display(const char *pFilename, int mode)
 
 			for (j = 0; j < width; j++)
 			{
-				plot_pixel(j, i, line_buffer[j]);
+				drawpixel(j, i, line_buffer[j]);
 			}
 		}
 		else if (is_ascii == 0 && is_gray == 1) // PGM P5
@@ -210,7 +210,7 @@ int ppm_load_and_display(const char *pFilename, int mode)
 
 			for (j = 0; j < width; j++)
 			{
-				plot_pixel(j, i, line_buffer[j]);
+				drawpixel(j, i, line_buffer[j]);
 			}
 		}
 
