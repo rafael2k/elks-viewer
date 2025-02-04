@@ -19,7 +19,6 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <math.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -49,7 +48,7 @@ void sig_handler(int signo)
 		set_mode(mode);
 }
 
-int isgraph(int c)
+int is_graph(int c)
 {
   return ((c > 0x20) && (c <= 0x7E));
 }
@@ -86,7 +85,7 @@ int ppm_load_and_display(const char *pFilename, int mode)
 	while (fgets(line, MAXLINE, f) != NULL) {
 		int flag = 0;
 		for (i = 0; i < strlen(line); i++) {
-			if (isgraph(line[i]) && (flag == 0)) {
+			if (is_graph(line[i]) && (flag == 0)) {
 				if ((line[i] == '#') && (flag == 0)) {
 					flag = 1;
 				}
