@@ -48,7 +48,7 @@ jpgview: picojpeg.obj mem.obj jpgview.obj graphics.obj
 	$(LD) $(LDFLAGS) -o $@ picojpeg.obj mem.obj jpgview.obj graphics.obj $(LDLIBS)
 
 ppmview: ppmview.obj graphics.obj
-	$(LD) $(LDFLAGS) -o $@ ppmview.obj ppmview.obj graphics.obj $(LDLIBS)
+	$(LD) $(LDFLAGS) -o $@ ppmview.obj graphics.obj $(LDLIBS)
 
 bmpview: bmpview.obj graphics.obj
 	$(LD) $(LDFLAGS) -o $@ bmpview.obj graphics.obj $(LDLIBS)

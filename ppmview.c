@@ -39,6 +39,7 @@ extern void free(void *ptr);
 
 uint16_t mode = 0;
 
+
 void sig_handler(int signo)
 {
 	if (signo == SIGINT)
@@ -47,6 +48,8 @@ void sig_handler(int signo)
 	if (mode)
 		set_mode(mode);
 }
+
+
 
 int is_graph(int c)
 {
@@ -127,7 +130,7 @@ int ppm_load_and_display(const char *pFilename, int mode)
 	}
 	int c, r_val, g_val, b_val;
 	int j = 0;
-	uint32_t offset = 0;
+	uint16_t offset = 0;
 
 	uint16_t line_size;
 	if (is_gray)
@@ -174,7 +177,6 @@ int ppm_load_and_display(const char *pFilename, int mode)
 				drawpixel(j, i, pixel);
 				offset += 3;
 			}
-
 		}
 		else if (is_ascii == 0 && is_gray == 0) // PPM P6
 		{
@@ -212,7 +214,6 @@ int ppm_load_and_display(const char *pFilename, int mode)
 				drawpixel(j, i, line_buffer[j]);
 			}
 		}
-
 	}
 
 	free(line_buffer);

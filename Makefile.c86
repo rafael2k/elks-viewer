@@ -46,7 +46,7 @@ CPPFLAGS=$(CPP86FLAGS) $(INCLUDES) $(DEFINES)
 CFLAGS=$(C86FLAGS)
 ASFLAGS=$(AS86FLAGS)
 ARFLAGS_SUB=r
-LDFLAGS=-0 -i -L$(C86LIB)
+LDFLAGS=-0 -i -L$(TOPDIR)/libc/
 LDLIBS=-lc86
 
 # Automated rules for C86 toolchain
@@ -76,7 +76,7 @@ jpgview: picojpeg.o mem.o jpgview.o graphics.o
 	$(LD) $(LDFLAGS) -o $@ picojpeg.o mem.o jpgview.o graphics.o $(LDLIBS)
 
 ppmview: ppmview.o graphics.o
-	$(LD) $(LDFLAGS) -o $@ ppmview.o ppmview.o graphics.o $(LDLIBS)
+	$(LD) $(LDFLAGS) -o $@ ppmview.o graphics.o $(LDLIBS)
 
 bmpview: bmpview.o graphics.o
 	$(LD) $(LDFLAGS) -o $@ bmpview.o graphics.o $(LDLIBS)
