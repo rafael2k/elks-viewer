@@ -28,25 +28,18 @@
 
 // #define DEBUG
 
-// Reference: https://www.chibialiens.com/8086/platform.php?noui=1
+#ifdef __WATCOMC__
 uint8_t __far *CGA = (void __far *)0xB8000000L;        /* this points to video CGA memory. */
 uint8_t __far *VGA = (void __far *)0xA0000000L;        /* this points to video VGA memory. */
+#endif
 
-// this is just for mode 13h. TODO: make this generic
-void plot_pixel(int x,int y, uint8_t color)
-{
-     /*  y*320 = y*256 + y*64 = y*2^8 + y*2^6   */
-	int offset = (y<<8)+(y<<6)+x;
-	VGA[offset] = color;
-}
-
-
+#if defined(__WATCOMC__)
 //    on return:
 //  AH = number of screen columns
 //	AL = mode currently set (see VIDEO MODES)
 //	BH = current display page
 uint16_t get_mode_a();
-#pragma aux get_mode_a value [ax] =								\
+#pragma aux get_mode_a value [ax] parm [ ax ] =								\
 "mov ax,0F00h", \
 "int 10h", \
 modify [ ax bx ];
@@ -76,40 +69,163 @@ void get_palette_a(uint16_t bx);
 "mov pal_dx,dx", \
 modify [ ax bx cx dx ];
 
+#pragma aux set_palette_a parm [ ax ] =			\
+"mov bx,ax", \
+"mov cx,pal_cx", \
+"mov dx,pal_dx", \
+"mov ax, 1010h", \
+"int 10h", \
+modify [ ax bx cx dx ];
+
+#elif defined(__C86__)
+
+/* use BIOS to set video mode */
+static void get_mode_a(uint16_t *mode)
+{
+	asm(
+        "push   bx\n"
+        "push   cx\n"
+		"push   dx\n"
+		"mov    ax,#0x0F00\n"
+		"int    0x10\n"
+		"mov    [bp+4],ax\n"
+        "pop    dx\n"
+        "pop    cx\n"
+        "pop    bx\n"
+	);
+
+
+}
+
+static void set_mode_a(uint16_t mode)
+{
+    asm(
+        "push   si\n"
+        "push   di\n"
+        "push   ds\n"
+        "push   es\n"
+        "mov    ax,[bp+4]\n"    /* AH=0, AL=mode */
+        "int    0x10\n"
+        "pop    es\n"
+        "pop    ds\n"
+        "pop    di\n"
+        "pop    si\n"
+    );
+}
+
+/* PAL write color byte at video offset */
+static void writevid(uint16_t offset, uint8_t c)
+{
+    asm(
+        "push   ds\n"
+        "push   bx\n"
+        "mov    ax,#0xA000\n"
+        "mov    ds,ax\n"
+        "mov    bx,[bp+4]\n"    /* offset */
+        "mov    al,[bp+6]\n"    /* color */
+        "mov    [bx],al\n"
+        "pop    bx\n"
+        "pop    ds\n"
+    );
+}
+
+static void set_palette_a(uint16_t index, uint16_t cx, uint16_t dx)
+{
+    asm(
+        "push   bx\n"
+        "push   cx\n"
+		"push   dx\n"
+        "mov    bx,[bp+4]\n"    /* index */
+        "mov    cx,[bp+6]\n"    /* cx */
+        "mov    dx,[bp+8]\n"    /* cx */
+		"mov    ax,#0x1010\n"
+		"int    0x10\n"
+        "pop    dx\n"
+        "pop    cx\n"
+        "pop    bx\n"
+	);
+
+}
+
+static void get_palette_a(uint16_t index, uint16_t *cx, uint16_t *dx)
+{
+    asm(
+        "push   bx\n"
+        "push   cx\n"
+		"push   dx\n"
+		"mov    ax,#0x1015\n"
+		"mov    bx,[bp+4]\n"    /* index */
+		"int    0x10\n"
+		"mov    [bp+6],cx\n"
+		"mov    [bp+8],dx\n"
+        "pop    dx\n"
+        "pop    cx\n"
+        "pop    bx\n"
+	);
+
+}
+
+
+#endif
+
+// this is just for mode 13h. TODO: make this generic
+void plot_pixel(int x,int y, uint8_t color)
+{
+     /*  y*320 = y*256 + y*64 = y*2^8 + y*2^6   */
+	int offset = (y<<8)+(y<<6)+x;
+#if defined(__C86__)
+	writevid(offset, color);
+#elif defined(__WATCOMC__)
+	VGA[offset] = color;
+#endif
+
+}
+
 void set_mode(uint8_t mode)
 {
 	set_mode_a((uint16_t)mode);
 }
 
-uint16_t get_mode()
+uint16_t get_mode(uint)
 {
+#if defined(__WATCOMC__)
 	return get_mode_a() & 0xff;
+#elif defined(__C86__)
+	uint16_t mode;
+	get_mode_a(&mode);
+	return mode;
+#endif
 }
 
 void set_palette(uint8_t red, uint8_t green, uint8_t blue, uint16_t index)
 {
+#if defined(__WATCOMC__)
 	pal_cx = ((green >> 2) << 8) | (blue >> 2);
 	pal_dx = (red >> 2) << 8;
 
 	set_palette_a(index);
-
+#elif defined(__C86__)
+	set_palette_a(index, ((green >> 2) << 8) | (blue >> 2), (red >> 2) << 8);
+#endif
 }
 
 // returns the palette of index in colors[0,1,2]
 void get_palette(uint8_t *red, uint8_t *green, uint8_t *blue, uint16_t index)
 {
+#if defined(__WATCOMC__)
 	get_palette_a(index);
 
 	*red = (uint8_t) ((pal_dx >> 8) << 2);
 	*green = (uint8_t) (pal_cx >> 8) << 2;
 	*blue = (uint8_t) (pal_cx & 0xff) << 2;
+#elif defined(__C86__)
+	uint16_t cx, dx,
+	get_palette_a(index, &cx, &dx);
+	*red = (uint8_t) ((dx >> 8) << 2);
+	*green = (uint8_t) (cx >> 8) << 2;
+	*blue = (uint8_t) (cx & 0xff) << 2;
+#endif
 }
-
-uint8_t __far *get_video_pointer()
-{
-	return VGA;
-}
-
 
 // this is our grayscale palette
 void load_palette1g(uint8_t mode)
