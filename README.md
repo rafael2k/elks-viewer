@@ -3,20 +3,23 @@
 
 An optimized image viewer which runs on ELKS on Intel 8088 CPU or better.
 
-ELKS Viewer is composed by standalone viewers:
+ELKS Viewer is a set of tools composed by standalone viewers:
 - bmpview: Supports 1, 4, 8 and 24 bits BMP (run-length encoding also supported)
 - ppmview: Supports PPM and PGM formats
 - jpgview: A JPEG viewer which supports coloured and grayscale images
 
-JPEG decoding uses PicoJPEG.
+JPEG decoding uses PicoJPEG. Source "graphics.c" contains the graphics operation routines. 
 
-At this point, only the Open Watcom v2 compiler is supported, and the software is linked to ELKS libc. For now, only mode 0x13 (320x200 256 colors) is supported.
+
+Open Watcom v2 compiler is supported (C86 support WIP), and the software is linked to ELKS libc. 
 
 
 ```
  Usage: {jpg,bmp,ppm}view [source_file]
     source_file: Image file to decode.
 ```
+
+Folder "3rdparty" contains CPIG software (Color Palette Inference Generator) to create optimized palettes for a given image. 
 
 # Build
 
