@@ -39,43 +39,43 @@ uint8_t __far *VGA = (void __far *)0xA0000000L;        /* this points to video V
 //	AL = mode currently set (see VIDEO MODES)
 //	BH = current display page
 uint16_t get_mode_a();
-#pragma aux get_mode_a value [ax] parm [ ax ] =								\
-"mov ax,0F00h", \
-"int 10h", \
-modify [ ax bx ];
+#pragma aux get_mode_a value [ax] parm [ ax ] =	\
+	"mov ax,0F00h",								\
+	"int 10h",									\
+	modify [ ax bx ];
 
 void set_mode_a(uint16_t mode);
-#pragma aux set_mode_a parm [ax] =								\
-"int 10h", \
-modify [ ax ];
+#pragma aux set_mode_a parm [ax] =				\
+	"int 10h",									\
+	modify [ ax ];
 
 uint16_t pal_cx, pal_dx;
 
 void set_palette_a(uint16_t ax);
-#pragma aux set_palette_a parm [ ax ] =		\
-"mov bx,ax", \
-"mov cx,pal_cx", \
-"mov dx,pal_dx", \
-"mov ax, 1010h", \
-"int 10h", \
-modify [ ax bx cx dx ];
+#pragma aux set_palette_a parm [ ax ] =			\
+	"mov bx,ax",								\
+	"mov cx,pal_cx",							\
+	"mov dx,pal_dx",							\
+	"mov ax, 1010h",							\
+	"int 10h",									\
+	modify [ ax bx cx dx ];
 
 void get_palette_a(uint16_t bx);
-#pragma aux get_palette_a parm [ bx ] =		\
-"mov bh,0", \
-"mov ax,1015h",									\
-"int 10h",															\
-"mov pal_cx,cx", \
-"mov pal_dx,dx", \
-modify [ ax bx cx dx ];
+#pragma aux get_palette_a parm [ bx ] =			\
+	"mov bh,0",									\
+	"mov ax,1015h",								\
+	"int 10h",									\
+	"mov pal_cx,cx",							\
+	"mov pal_dx,dx",							\
+	modify [ ax bx cx dx ];
 
 #pragma aux set_palette_a parm [ ax ] =			\
-"mov bx,ax", \
-"mov cx,pal_cx", \
-"mov dx,pal_dx", \
-"mov ax, 1010h", \
-"int 10h", \
-modify [ ax bx cx dx ];
+	"mov bx,ax",								\
+	"mov cx,pal_cx",							\
+	"mov dx,pal_dx",							\
+	"mov ax, 1010h",							\
+	"int 10h",									\
+	modify [ ax bx cx dx ];
 
 #elif defined(__C86__)
 
@@ -95,7 +95,7 @@ static void get_mode_a(uint16_t *mode)
         "pop    dx\n"
         "pop    cx\n"
         "pop    bx\n"
-	);
+		);
 
 }
 
@@ -112,7 +112,7 @@ static void set_mode_a(uint16_t mode)
         "pop    ds\n"
         "pop    di\n"
         "pop    si\n"
-    );
+		);
 }
 
 /* PAL write color byte at video offset */
@@ -128,10 +128,10 @@ static void writevid(uint16_t offset, uint8_t c)
         "mov    [bx],al\n"
         "pop    bx\n"
         "pop    ds\n"
-    );
+		);
 }
 
-static void set_palette_a(uint16_t index, uint16_t cx, uint16_t dx)
+static void set_palette_a(uint16_t idx, uint16_t cx, uint16_t dx)
 {
     asm(
         "push   bx\n"
@@ -145,11 +145,11 @@ static void set_palette_a(uint16_t index, uint16_t cx, uint16_t dx)
         "pop    dx\n"
         "pop    cx\n"
         "pop    bx\n"
-	);
+		);
 
 }
 
-static void get_palette_a(uint16_t index, uint16_t *cx, uint16_t *dx)
+static void get_palette_a(uint16_t idx, uint16_t *cx, uint16_t *dx)
 {
     asm(
         "push   bx\n"
@@ -167,7 +167,7 @@ static void get_palette_a(uint16_t index, uint16_t *cx, uint16_t *dx)
         "pop    dx\n"
         "pop    cx\n"
         "pop    bx\n"
-	);
+		);
 
 }
 
@@ -177,7 +177,7 @@ static void get_palette_a(uint16_t index, uint16_t *cx, uint16_t *dx)
 // this is just for mode 13h. TODO: make this generic
 void drawpixel(int x,int y, uint8_t color)
 {
-     /*  y*320 = y*256 + y*64 = y*2^8 + y*2^6   */
+	/*  y*320 = y*256 + y*64 = y*2^8 + y*2^6   */
 	int offset = (y<<8)+(y<<6)+x;
 #if defined(__C86__)
 	writevid(offset, color);
@@ -192,7 +192,7 @@ void set_mode(uint8_t mode)
 	set_mode_a((uint16_t)mode);
 }
 
-uint16_t get_mode(uint)
+uint16_t get_mode()
 {
 #if defined(__WATCOMC__)
 	return get_mode_a() & 0xff;
@@ -203,30 +203,30 @@ uint16_t get_mode(uint)
 #endif
 }
 
-void set_palette(uint8_t red, uint8_t green, uint8_t blue, uint16_t index)
+void set_palette(uint8_t red, uint8_t green, uint8_t blue, uint16_t idx)
 {
 #if defined(__WATCOMC__)
 	pal_cx = ((green >> 2) << 8) | (blue >> 2);
 	pal_dx = (red >> 2) << 8;
 
-	set_palette_a(index);
+	set_palette_a(idx);
 #elif defined(__C86__)
-	set_palette_a(index, ((green >> 2) << 8) | (blue >> 2), (red >> 2) << 8);
+	set_palette_a(idx, ((green >> 2) << 8) | (blue >> 2), (red >> 2) << 8);
 #endif
 }
 
 // returns the palette of index in colors[0,1,2]
-void get_palette(uint8_t *red, uint8_t *green, uint8_t *blue, uint16_t index)
+void get_palette(uint8_t *red, uint8_t *green, uint8_t *blue, uint16_t idx)
 {
 #if defined(__WATCOMC__)
-	get_palette_a(index);
+	get_palette_a(idx);
 
 	*red = (uint8_t) ((pal_dx >> 8) << 2);
 	*green = (uint8_t) (pal_cx >> 8) << 2;
 	*blue = (uint8_t) (pal_cx & 0xff) << 2;
 #elif defined(__C86__)
 	uint16_t cx, dx;
-	get_palette_a(index, &cx, &dx);
+	get_palette_a(idx, &cx, &dx);
 	*red = (uint8_t) ((dx >> 8) << 2);
 	*green = (uint8_t) (cx >> 8) << 2;
 	*blue = (uint8_t) (cx & 0xff) << 2;
@@ -329,7 +329,8 @@ uint8_t rgb2palette1(uint8_t r, uint8_t g, uint8_t b)
 
 // Everything below here will be deleted as we don't need the default VGA palette for nothing basically..
 #if 0
-uint8_t vgapal[256][3] = {
+uint8_t vgapal[256][3] =
+{
     /* colors 0-15 */
     {0x00, 0x00, 0x00},
 
@@ -659,7 +660,8 @@ uint8_t rgb2vga(int r, int g, int b) {
 
 	int closest = 32000;
 	int ndx = 0;
-	for (int i = 0; i < 248; i++) {
+	for (int i = 0; i < 248; i++)
+	{
 		uint8_t *sample = vgapal[i];
 		int rs = (sample[0] > r)? sample[0] - r : r - sample[0];
 		int gs = (sample[1] > g)? sample[1] - g : g - sample[1];
@@ -668,11 +670,13 @@ uint8_t rgb2vga(int r, int g, int b) {
 
 		// printf("dist %d\n", dst);
 
-		if (closest > dst) {
+		if (closest > dst)
+		{
 			closest = dst;
 			ndx = i;
 		}
-		else if (dst < 30) {
+		else if (dst < 30)
+		{
 			ndx = i;
 			break;
 		}

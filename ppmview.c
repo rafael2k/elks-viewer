@@ -66,7 +66,7 @@ static int print_usage()
    return EXIT_FAILURE;
 }
 
-int ppm_load_and_display(const char *pFilename, int mode)
+int ppm_load_and_display(const char *pFilename, int graph_mode)
 {
 	unsigned int width, height, maxcolors_val;
 	unsigned int i;
@@ -110,23 +110,31 @@ int ppm_load_and_display(const char *pFilename, int mode)
 		}
 	}
 
-	if (strcmp(magic, "P2") == 0) {
-		is_ascii = 1;
-		is_gray = 1;
-	}
-	else if (strcmp(magic, "P3") == 0) {
-		is_ascii = 1;
-		is_gray = 0;
-	} else if (strcmp(magic, "P6") == 0) {
+
+	if (magic[0] == 'P')
+	{
+		switch(magic[1])
+		{
+		case '2':
+			is_ascii = 1;
+			is_gray = 1;
+			break;
+		case '3':
+			is_ascii = 1;
+			is_gray = 0;
+			break;
+		case '6':
+			is_ascii = 0;
+			is_gray = 0;
+			break;
+		case '5':
 		is_ascii = 0;
-		is_gray = 0;
-	} else if (strcmp(magic, "P5") == 0) {
-		is_ascii = 0;
 		is_gray = 1;
-	}
-	else {
-		fprintf(stderr, "Error: Input file not in PPM (P3 or P6) or PGM (P2 or P5) format!\n");
-		return -1;
+		break;
+		default:
+			fprintf(stderr, "Error: Input file not in PPM (P3 or P6) or PGM (P2 or P5) format!\n");
+			return -1;
+		}
 	}
 	int c, r_val, g_val, b_val;
 	int j = 0;
@@ -267,8 +275,6 @@ int main(int arg_c, char *arg_v[])
 	   fprintf(stderr, "Error reading ppm file.\n");
 
    return ret;
-
-   return EXIT_SUCCESS;
 }
 //------------------------------------------------------------------------------
 

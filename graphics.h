@@ -59,8 +59,8 @@
 void drawpixel(int x,int y, uint8_t color);
 void set_mode(uint8_t mode);
 uint16_t get_mode();
-void set_palette(uint8_t red, uint8_t green, uint8_t blue, uint16_t index);
-void get_palette(uint8_t *red, uint8_t *green, uint8_t *blue, uint16_t index);
+void set_palette(uint8_t red, uint8_t green, uint8_t blue, uint16_t idx);
+void get_palette(uint8_t *red, uint8_t *green, uint8_t *blue, uint16_t idx);
 
 void load_palette1(uint8_t mode);
 void load_palette1g(uint8_t mode);
