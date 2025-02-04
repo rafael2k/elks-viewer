@@ -86,14 +86,16 @@ static void get_mode_a(uint16_t *mode)
         "push   bx\n"
         "push   cx\n"
 		"push   dx\n"
+		"push   di\n"
 		"mov    ax,#0x0F00\n"
 		"int    0x10\n"
-		"mov    [bp+4],ax\n"
+		"mov    di,[bp+4]\n"
+		"mov    [di],ax\n"
+		"pop    di\n"
         "pop    dx\n"
         "pop    cx\n"
         "pop    bx\n"
 	);
-
 
 }
 
@@ -153,11 +155,15 @@ static void get_palette_a(uint16_t index, uint16_t *cx, uint16_t *dx)
         "push   bx\n"
         "push   cx\n"
 		"push   dx\n"
+		"push   di\n"
 		"mov    ax,#0x1015\n"
 		"mov    bx,[bp+4]\n"    /* index */
 		"int    0x10\n"
-		"mov    [bp+6],cx\n"
-		"mov    [bp+8],dx\n"
+		"mov    di,[bp+6]\n"
+		"mov    [di],cx\n"
+		"mov    di,[bp+8]\n"
+		"mov    [di],dx\n"
+		"pop    di\n"
         "pop    dx\n"
         "pop    cx\n"
         "pop    bx\n"
@@ -193,7 +199,7 @@ uint16_t get_mode(uint)
 #elif defined(__C86__)
 	uint16_t mode;
 	get_mode_a(&mode);
-	return mode;
+	return mode & 0xff;
 #endif
 }
 
