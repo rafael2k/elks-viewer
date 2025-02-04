@@ -38,7 +38,7 @@ cd ~/elks-viewer
 
 Then, with the setup ready (in the same shell, with environment variables properly set), type:
 ```
-make -f Makefile.elks
+make -f Makefile.owc
 ```
 
 # Author
