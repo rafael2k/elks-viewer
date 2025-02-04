@@ -1,0 +1,87 @@
+# Examples Makefile for host building of ELKS example programs
+
+
+ifeq "$(TOPDIR)" ""
+$(error TOPDIR environment variable not set)
+endif
+
+ifeq "$(C86)" ""
+$(error C86 environment variable not set)
+endif
+
+INCLUDES = -I$(TOPDIR)/libc/include -I$(TOPDIR)/elks/include -I$(TOPDIR)/libc/include/c86
+DEFINES = -D__LIBC__ -D__HAS_NO_FLOATS__=1 -D__HAS_NO_LONGLONG__
+
+CPP86FLAGS =\
+    -0                          \
+
+C86UNUSED =\
+    -v                          \
+
+C86FLAGS =\
+    -g                          \
+    -O                          \
+    -bas86                      \
+    -warn=4                     \
+    -lang=c99                   \
+    -align=yes                  \
+    -separate=yes               \
+    -stackopt=minimum           \
+    -peep=all                   \
+    -stackcheck=no              \
+
+AS86FLAGS =\
+    -0                          \
+    -O                          \
+    -j                          \
+    -w-                         \
+
+CPP=$(C86)/host-bin/cpp86
+CC=$(C86)/host-bin/c86
+AS=$(C86)/host-bin/as86
+AR=$(C86)/host-bin/ar86
+LD=$(C86)/host-bin/ld86
+
+CPPFLAGS=$(CPP86FLAGS) $(INCLUDES) $(DEFINES)
+CFLAGS=$(C86FLAGS)
+ASFLAGS=$(AS86FLAGS)
+ARFLAGS_SUB=r
+LDFLAGS=-0 -i -L$(C86LIB)
+LDLIBS=-lc86
+
+# Automated rules for C86 toolchain
+%.o: %.c
+
+%.i: %.c
+	$(CPP) $(CPPFLAGS) -o $*.i $<
+
+%.as: %.i
+	$(CC) $(CFLAGS) $< $*.as
+
+%.o: %.as
+	$(AS) $(ASFLAGS) -o $*.o -l $*.lst $*.as
+
+%.o: %.s
+	$(AS) $(ASFLAGS) -o $*.o -l $*.lst $*.s
+
+##### End of standardized section #####
+
+#DEFINES+=
+
+PROG = jpgview ppmview bmpview
+
+all: $(PROG)
+
+jpgview: picojpeg.o mem.o jpgview.o graphics.o
+	$(LD) $(LDFLAGS) -o $@ picojpeg.o mem.o jpgview.o graphics.o $(LDLIBS)
+
+ppmview: ppmview.o graphics.o
+	$(LD) $(LDFLAGS) -o $@ ppmview.o ppmview.o graphics.o $(LDLIBS)
+
+bmpview: bmpview.o graphics.o
+	$(LD) $(LDFLAGS) -o $@ bmpview.o graphics.o $(LDLIBS)
+
+
+
+clean:
+	rm -f $(PROG) *.o

@@ -390,8 +390,8 @@ static int16 getExtendOffset(uint8 i)
       case 14: return ((-1)<<14) + 1; 
       case 15: return ((-1)<<15) + 1;
       default: return 0;
-   }
-};
+   };
+}
 //------------------------------------------------------------------------------
 static PJPG_INLINE int16 huffExtend(uint16 x, uint8 s)
 {
