@@ -39,7 +39,7 @@ extern void free(void *ptr);
 
 uint16_t mode = 0;
 
-
+#ifndef __C86__
 void sig_handler(int signo)
 {
 	if (signo == SIGINT)
@@ -48,7 +48,7 @@ void sig_handler(int signo)
 	if (mode)
 		set_mode(mode);
 }
-
+#endif
 
 
 int is_graph(int c)
@@ -235,8 +235,10 @@ int main(int arg_c, char *arg_v[])
 
    mode = get_mode();
 
+#ifndef __C86__
    if (signal(SIGINT, sig_handler) == SIG_ERR)
 	   printf("\ncan't catch SIGINT\n");
+#endif
 
    printf("Source File:               \"%s\"\n", filename);
    printf("Current Graphics Mode:     \"%hu\"\n\n", mode);
