@@ -219,7 +219,7 @@ void get_palette(uint8_t *red, uint8_t *green, uint8_t *blue, uint16_t index)
 	*green = (uint8_t) (pal_cx >> 8) << 2;
 	*blue = (uint8_t) (pal_cx & 0xff) << 2;
 #elif defined(__C86__)
-	uint16_t cx, dx,
+	uint16_t cx, dx;
 	get_palette_a(index, &cx, &dx);
 	*red = (uint8_t) ((dx >> 8) << 2);
 	*green = (uint8_t) (cx >> 8) << 2;

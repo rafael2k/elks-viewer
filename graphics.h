@@ -56,7 +56,6 @@
 */
 
 
-uint8_t __far *get_video_pointer();
 void drawpixel(int x,int y, uint8_t color);
 void set_mode(uint8_t mode);
 uint16_t get_mode();
