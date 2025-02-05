@@ -32,15 +32,18 @@
 
 // Uncompress BMP image (either RLE8 or RLE4)
 void decompress_RLE_BMP(FILE *fp, unsigned char bpp, int width, int height, uint8_t palette){
-	int xpos = 0; int ypos = 0;
+	int xpos = 0;
+	int ypos = 0;
 	int i,j,n;
 	uint16_t total_bytes_read = 0;
 	uint8_t i_max = 0;
 	uint8_t _bpp = 0;
 	uint8_t count_val[2] = {0,0};//Get mode Get data
 
-	if (bpp == 8) _bpp = 3;
-	if (bpp == 4) _bpp = 2;
+	if (bpp == 8)
+		_bpp = 3;
+	if (bpp == 4)
+		_bpp = 2;
 
 	while (ypos < height && xpos <= width)
 	{
@@ -52,14 +55,18 @@ void decompress_RLE_BMP(FILE *fp, unsigned char bpp, int width, int height, uint
             // encoded mode run - count == run_length; val == pixel data
 			if (count_val[1])
 				count_val[1] += palette;
+
 			for (j = 0; ( j < count_val[0]) && (xpos < width);)
 			{
+
 				for (i = 1;((i <= (8 >> _bpp)) && (xpos < width) && ( j < count_val[0]));i++, xpos++, j++)
 				{
-					drawpixel(xpos, height - ypos, (count_val[1] & (((1<<bpp)-1) << (8 - (i << _bpp)))) >> (8 - (i << _bpp)));
-					//LT_tile_tempdata[y_offset + xpos] = (count_val[1] & (((1<<bpp)-1) << (8 - (i << _bpp)))) >> (8 - (i << _bpp));
+					uint16_t bar = (8 - (i << _bpp));
+					drawpixel(xpos, height - ypos, (count_val[1] & (((1<<bpp)-1) << bar )) >> bar);
 				}
+
 			}
+
 		}
 		// uncompressed record
 		if ((count_val[0] == 0) && (count_val[1] > 2))
@@ -84,12 +91,13 @@ void decompress_RLE_BMP(FILE *fp, unsigned char bpp, int width, int height, uint
 				while ((i <= i_max) && (xpos < width))
 				{
 					drawpixel(xpos, height - ypos, (c >> (8-(i<<_bpp))) & ((1<<bpp)-1));
-                    i++; xpos++;
+					i++;
+					xpos++;
                 }
             }
 			// absolute mode runs are padded to 16-bit alignment
 			if (total_bytes_read & 1)
-				fseek(fp,1,SEEK_CUR);
+				fseek(fp, 1L, SEEK_CUR);
 		}
 		// Line end
 		if ((count_val[0] == 0) && (count_val[1] == 0))
@@ -119,6 +127,7 @@ int bmp_load_and_display(const char *filename, int mode)
 	uint8_t pixel_format;
 	uint8_t rle;
 	uint8_t *line_buffer; // max 640 pixels per line on 3 byte colors
+	uint16_t offset;
 	int load_palette = 1; // set to 0 not to touch palette registers
 #if 0
 	uint8_t *old_palette = NULL;
@@ -135,21 +144,21 @@ int bmp_load_and_display(const char *filename, int mode)
 
 	uint32_t bmp_size = 0;
 	fread(&bmp_size, 1, 4, fp);
-	fseek(fp, 4,SEEK_CUR);
-	uint32_t offset = 0;
-	fread(&offset, 1, 4, fp);
+	fseek(fp, 4L, SEEK_CUR);
+	uint32_t file_offset = 0;
+	fread(&file_offset, 1, 4, fp);
 
 	fread(&dib_header_size, 1, 2, fp );
-	fseek(fp, 2, SEEK_CUR);
+	fseek(fp, 2L, SEEK_CUR);
 	fread(&width, 1 ,2, fp);
-	fseek(fp, 2, SEEK_CUR);
+	fseek(fp, 2L, SEEK_CUR);
 	fread(&height, 1 ,2, fp);
-	fseek(fp, 4, SEEK_CUR);
+	fseek(fp, 4L, SEEK_CUR);
 	fread(&pixel_format, 1, 1, fp);
-	fseek(fp, 1, SEEK_CUR);
+	fseek(fp, 1L, SEEK_CUR);
 	fread(&rle, 1,  1, fp);	//0 none, 1 = 8 bit, 2 = 4 bit
 
-	fseek(fp, 15,SEEK_CUR);
+	fseek(fp, 15L,SEEK_CUR);
 	fread(&num_colors, 1, 2, fp);
 
 	if (num_colors == 0)
@@ -157,7 +166,7 @@ int bmp_load_and_display(const char *filename, int mode)
 
 	//Advance to palette data
 	dib_header_size -=34;
-	fseek(fp, dib_header_size, SEEK_CUR);
+	fseek(fp, (long int) dib_header_size, SEEK_CUR);
 
 #ifdef DEBUG
 	fprintf(stderr, "dib_header_size: %hu\n", dib_header_size);
@@ -166,7 +175,7 @@ int bmp_load_and_display(const char *filename, int mode)
 	fprintf(stderr, "pixel format: %hu\n", pixel_format);
 	fprintf(stderr, "run-length encoding: %hu\n", rle);
 	fprintf(stderr, "num colors: %hu\n", num_colors);
-	fprintf(stderr, "offset: %u\n", offset);
+	fprintf(stderr, "offset: %u\n", file_offset);
 
 #endif
 	// load palette
@@ -206,7 +215,7 @@ int bmp_load_and_display(const char *filename, int mode)
 		}
 		else
 		{
-			fseek(fp, num_colors << 2, 1);
+			fseek(fp, (long int) num_colors << 2, 1);
 		}
 
 		if (pixel_format == 4)
@@ -276,8 +285,8 @@ int bmp_load_and_display(const char *filename, int mode)
 					for (int j = 0; j < line_size; j++)
 					{
 						int x_off = j << 3;
-						for (int offset = 7; offset >= 0; offset--)
-							drawpixel(x_off + offset, i, (line_buffer[j] >> (7 - offset)) & 1);
+						for (int offst = 7; offst >= 0; offst--)
+							drawpixel(x_off + offst, i, (line_buffer[j] >> (7 - offst)) & 1);
 					}
 				}
 				free(line_buffer);
@@ -334,7 +343,7 @@ int bmp_load_and_display(const char *filename, int mode)
 
 uint16_t mode = 0;
 
-
+#ifndef __C86
 void sig_handler(int signo)
 {
 	if (signo == SIGINT)
@@ -344,6 +353,7 @@ void sig_handler(int signo)
 	if (mode)
 		set_mode(mode);
 }
+#endif
 
 static int print_usage()
 {
@@ -368,9 +378,10 @@ int main(int argc, char *argv[])
 
    mode = get_mode();
 
+#ifndef __C86__
    if (signal(SIGINT, sig_handler) == SIG_ERR)
 	   printf("\ncan't catch SIGINT\n");
-
+#endif
 
    printf("Source File:               \"%s\"\n", filename);
    printf("Current Graphics Mode:     \"%hu\"\n\n", mode);
@@ -409,6 +420,4 @@ int main(int argc, char *argv[])
 	   fprintf(stderr, "Error reading bmp file.\n");
 
    return ret;
-
-   return EXIT_SUCCESS;
 }

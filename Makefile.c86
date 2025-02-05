@@ -1,5 +1,4 @@
-# Examples Makefile for host building of ELKS example programs
-
+# ELKS Viewer - C86 Makefile
 
 ifeq "$(TOPDIR)" ""
 $(error TOPDIR environment variable not set)
@@ -68,7 +67,8 @@ LDLIBS=-lc86
 
 #DEFINES+=
 
-PROG = jpgview ppmview bmpview
+# jpgview is not being built with C86 yet
+PROG = ppmview bmpview
 
 all: $(PROG)
 
@@ -81,7 +81,8 @@ ppmview: ppmview.o graphics.o
 bmpview: bmpview.o graphics.o
 	$(LD) $(LDFLAGS) -o $@ bmpview.o graphics.o $(LDLIBS)
 
-
+#test: test.o
+#	$(LD) $(LDFLAGS) -o $@ test.o $(LDLIBS)
 
 clean:
 	rm -f $(PROG) *.o
