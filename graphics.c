@@ -80,7 +80,7 @@ void get_palette_a(uint16_t bx);
 #elif defined(__C86__)
 
 /* use BIOS to set video mode */
-static void get_mode_a(uint16_t *mode)
+static void get_mode_a(uint16_t *mode_set)
 {
 	asm(
         "push   bx\n"
@@ -99,7 +99,7 @@ static void get_mode_a(uint16_t *mode)
 
 }
 
-static void set_mode_a(uint16_t mode)
+static void set_mode_a(uint16_t mode_set)
 {
     asm(
         "push   si\n"
@@ -174,33 +174,104 @@ static void get_palette_a(uint16_t idx, uint16_t *cx, uint16_t *dx)
 
 #endif
 
+uint16_t width_internal, heigth_internal, mode_internal;
+
 // this is just for mode 13h. TODO: make this generic
 void drawpixel(int x,int y, uint8_t color)
 {
-	/*  y*320 = y*256 + y*64 = y*2^8 + y*2^6   */
-	int offset = (y<<8)+(y<<6)+x;
+	int offset;
+
+	switch (mode_internal)
+	{
+	case VIDEO_MODE_10:
+	case VIDEO_MODE_12:
 #if defined(__C86__)
-	writevid(offset, color);
-#elif defined(__WATCOMC__)
-	VGA[offset] = color;
+		vga_drawpixel(x, y, (int)color);
 #endif
+		break;
 
+	case VIDEO_MODE_13:
+		/*  y*320 = y*256 + y*64 = y*2^8 + y*2^6   */
+		offset = (y<<8)+(y<<6)+x;
+#if defined(__C86__)
+		writevid(offset, color);
+#elif defined(__WATCOMC__)
+		VGA[offset] = color;
+#endif
+		break;
+
+	case TEXT_MODE_3:
+	case TEXT_MODE_2:
+	case TEXT_MODE_1:
+	case TEXT_MODE_0:
+		break;
+
+	default:
+		printf("Unsupported mode: %02x\n", mode_internal);
+	}
 }
 
-void set_mode(uint8_t mode)
+
+void set_mode(uint8_t mode_set)
 {
-	set_mode_a((uint16_t)mode);
+	mode_internal = mode_set;
+
+	switch (mode_set)
+	{
+	case VIDEO_MODE_10:
+		width_internal = 640;
+		heigth_internal = 350;
+		set_mode_a(mode_set);
+#ifdef __C86__
+		vga_init();
+#else
+		printf("Mode unsupported on for OWC: %02x\n", mode_set);
+#endif
+		break;
+
+	case VIDEO_MODE_12:
+		width_internal = 640;
+		heigth_internal = 480;
+		set_mode_a(mode_set);
+#ifdef __C86__
+		vga_init();
+#else
+		printf("Mode unsupported on for OWC: %02x\n", mode_set);
+#endif
+		break;
+
+	case VIDEO_MODE_13:
+		width_internal = 320;
+		heigth_internal = 200;
+		set_mode_a(mode_set);
+		break;
+
+	case TEXT_MODE_3:
+	case TEXT_MODE_2:
+	case TEXT_MODE_1:
+	case TEXT_MODE_0:
+		width_internal = 0;
+		heigth_internal = 0;
+		set_mode_a(mode_set);
+		break;
+
+	default:
+		set_mode_a(mode_set);
+		printf("Unsupported mode: %02x\n", mode_set);
+	}
 }
+
 
 uint16_t get_mode()
 {
 #if defined(__WATCOMC__)
-	return get_mode_a() & 0xff;
+	mode_internal = get_mode_a() & 0xff;
 #elif defined(__C86__)
-	uint16_t mode;
-	get_mode_a(&mode);
-	return mode & 0xff;
+	uint16_t mode_set;
+	get_mode_a(&mode_set);
+	mode_internal = mode_set & 0xff;
 #endif
+	return mode_internal;
 }
 
 void set_palette(uint8_t red, uint8_t green, uint8_t blue, uint16_t idx)
@@ -234,10 +305,10 @@ void get_palette(uint8_t *red, uint8_t *green, uint8_t *blue, uint16_t idx)
 }
 
 // this is our grayscale palette
-void load_palette1g(uint8_t mode)
+void load_palette1g(uint8_t mode_set)
 {
 	uint8_t luminance;
-	if (mode == VIDEO_MODE_13)
+	if (mode_set == VIDEO_MODE_13)
 	{
 		int num_colors = 256;
 
@@ -251,12 +322,12 @@ void load_palette1g(uint8_t mode)
 
 
 // format for light conversion (palette1) is RRRGGGBB
-void load_palette1(uint8_t mode)
+void load_palette1(uint8_t mode_set)
 {
 	uint8_t red, green, blue;
 	uint8_t color;
 
-	if (mode == VIDEO_MODE_13)
+	if (mode_set == VIDEO_MODE_13)
 	{
 		int num_colors = 256;
 		red = 0;

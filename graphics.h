@@ -22,7 +22,10 @@
 
 #include <stdint.h>
 
-#define TEXT_MODE_3         0x03      /* 80x25 4-bit text mode. */
+#define TEXT_MODE_0         0x00      /* 40x25 B/W text mode. */
+#define TEXT_MODE_1         0x01      /* 40x25 4-bit color text mode. */
+#define TEXT_MODE_2         0x02      /* 80x25 4-bit shades of gray text mode. */
+#define TEXT_MODE_3         0x03      /* 80x25 4-bit color text mode. */
 #define VIDEO_MODE_5        0x05      /* 320x200 2-bit / CGA B800   */
 #define VIDEO_MODE_6        0x06      /* 640x200 1-bit / CGA B800   */
 #define VIDEO_MODE_D        0x0D      /* 320x200 4-bit / EGA A000   */
@@ -55,18 +58,32 @@
 	   = 13  320x200 256 color graphics (MCGA,VGA)
 */
 
+extern uint16_t width_internal, heigth_internal, mode_internal;
+
 
 void drawpixel(int x,int y, uint8_t color);
-void set_mode(uint8_t mode);
+void set_mode(uint8_t mode_set);
 uint16_t get_mode();
 void set_palette(uint8_t red, uint8_t green, uint8_t blue, uint16_t idx);
 void get_palette(uint8_t *red, uint8_t *green, uint8_t *blue, uint16_t idx);
 
-void load_palette1(uint8_t mode);
-void load_palette1g(uint8_t mode);
+void load_palette1(uint8_t mode_set);
+void load_palette1g(uint8_t mode_set);
 
 uint8_t rgb2palette1(uint8_t r, uint8_t g, uint8_t b);
 
+#ifdef __C86__
+// init 4-bit color routines in assembly
+void vga_init(void);
+void vga_drawpixel(int x, int y, int c);
+void vga_drawhline(int x1, int x2, int y, int c);
+void vga_drawvline(int x, int y1, int y2, int c);
+int vga_readpixel(int x, int y);
+#endif
+
+#if 0
 // this is very slow - don't use it
 uint8_t rgb2vga(int r, int g, int b);
+#endif
+
 #endif // GRAPHICS_H_
