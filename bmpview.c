@@ -300,7 +300,8 @@ int bmp_load_and_display(const char *filename, int mode)
 		line_buffer = malloc(line_size);
 
 		// now load an optimized pallet for RGB to 8-bit conversion
-		load_palette1(VIDEO_MODE_13);
+		if (mode == VIDEO_MODE_13)
+			load_palette1(VIDEO_MODE_13);
 
 		for(int i = height - 1; i >= 0; i--)
 		{
@@ -309,7 +310,11 @@ int bmp_load_and_display(const char *filename, int mode)
 
 			for (int j = 0; j < width; j++)
 			{
-				uint8_t pixel = rgb2palette1(line_buffer[offset+2], line_buffer[offset+1], line_buffer[offset]); // blue, green and red
+				uint8_t pixel;
+				if (mode == VIDEO_MODE_13)
+					pixel = rgb2palette1(line_buffer[offset+2], line_buffer[offset+1], line_buffer[offset]); // blue, green and red
+				else
+					pixel = rgb2palette1(line_buffer[offset+2], line_buffer[offset+1], line_buffer[offset]) >> 4; // temporary
 				drawpixel(j, i, pixel);
 				offset += 3;
 			}
@@ -357,24 +362,46 @@ void sig_handler(int signo)
 
 static int print_usage()
 {
-   printf("Usage: bmpview [source_file.bmp]\n");
+   printf("Usage: bmpview [-m mode] [source_file.bmp]\n");
    printf("source_file: BMP file to decode.\n");
+   printf("mode: IBM PC BIOS mode, in hexadecimal (supported: 0x10 EGA 640x350 4-bit, 0x12 VGA 640x480 4-bit and 0x13 320x200 8-bit).\n");
    printf("\n");
    printf("Displays a BMP image in the screen.\n");
    printf("\n");
-   return EXIT_FAILURE;
+   return 0;
 }
 
 int main(int argc, char *argv[])
 {
    const char *filename;
+   uint16_t mode_wanted = VIDEO_MODE_13;
 
-   printf("ELKS BMP Viewer v0.1\n");
+   printf("ELKS BMP Viewer v0.2\n");
 
-   if (argc != 2)
+   if (argc == 1)
       return print_usage();
 
-   filename = argv[1];
+   for (int i = 0; i < argc; i++)
+   {
+	   if (argv[i][0] == '-' && argv[i][1] != 0)
+	   {
+		   switch(argv[i][1])
+		   {
+		   case 'm':
+			   mode_wanted = strtol(argv[i+1], NULL, 16);
+			   i++;
+			   break;
+		   case 'h':
+			   print_usage();
+			   return EXIT_SUCCESS;
+		   default:
+			   print_usage();
+			   return EXIT_FAILURE;
+		   }
+	   }
+   }
+
+   filename = argv[argc-1];
 
    mode = get_mode();
 
@@ -384,12 +411,13 @@ int main(int argc, char *argv[])
 #endif
 
    printf("Source File:               \"%s\"\n", filename);
-   printf("Current Graphics Mode:     \"%hu\"\n\n", mode);
+   printf("Current Graphics Mode:     \"0x%hx\"\n", mode);
+   printf("Selected Graphics Mode:    \"0x%hx\"\n\n", mode_wanted);
    printf("Press any key to diplay the image.\n");
    printf("Then press any key to exit!\n");
    getchar();
 
-   set_mode(VIDEO_MODE_13);
+   set_mode(mode_wanted);
 
 #ifdef DEBUG
    printf("Palette before: \n");
