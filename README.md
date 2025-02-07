@@ -49,7 +49,7 @@ make -f Makefile.owc
 ## ELKS C86 (8086-toolchain)
 
 For building ELKS viewer tools with C86, be it nativelly on ELKS, or on another system crossbuilding, you need ELKS source code, available at
-https://github.com/ghaerr/elks/ and install 8086-toolchain tools, available here: https://github.com/ghaerr/8086-toolchain/ .
+https://github.com/ghaerr/elks/ and install 8086-toolchain tools, available here: https://github.com/ghaerr/8086-toolchain/ . Follow the instructions here: https://github.com/ghaerr/elks/wiki/Setting-up-the-8086-toolchain-(C86-compiler-and-tools) .
 
 On Linux, for example, do the following (ELKS source at ~/elks, and ELKS Viewer at ~/elks-viewer, C86 directory "/8086-toolchain"):
 
