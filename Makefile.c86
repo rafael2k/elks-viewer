@@ -75,16 +75,16 @@ all: $(PROG)
 jpgview: picojpeg.o mem.o jpgview.o graphics.o vga-4bp.o
 	$(LD) $(LDFLAGS) -o $@ picojpeg.o mem.o jpgview.o graphics.o vga-4bp.o $(LDLIBS)
 
-ppmview: ppmview.o graphics.o vga-4bp.o
-	$(LD) $(LDFLAGS) -o $@ ppmview.o graphics.o vga-4bp.o $(LDLIBS)
+ppmview: ppmview.o graphics.o vga-4bp.o utils.o
+	$(LD) $(LDFLAGS) -o $@ ppmview.o graphics.o vga-4bp.o utils.o $(LDLIBS)
 
-bmpview: bmpview.o graphics.o vga-4bp.o
-	$(LD) $(LDFLAGS) -o $@ bmpview.o graphics.o vga-4bp.o $(LDLIBS)
+bmpview: bmpview.o graphics.o vga-4bp.o utils.o
+	$(LD) $(LDFLAGS) -o $@ bmpview.o graphics.o vga-4bp.o utils.o $(LDLIBS)
+
+test: test.o graphics.o vga-4bp.o
+	$(LD) $(LDFLAGS) -o $@ test.o graphics.o vga-4bp.o $(LDLIBS)
 
 # vga-4bp.o: vga-4bp.s
-
-test: test.o
-	$(LD) $(LDFLAGS) -o $@ test.o $(LDLIBS)
 
 clean:
 	rm -f $(PROG) *.o

@@ -69,8 +69,16 @@ void get_palette(uint8_t *red, uint8_t *green, uint8_t *blue, uint16_t idx);
 
 void load_palette1(uint8_t mode_set);
 void load_palette1g(uint8_t mode_set);
+void load_palette1_4bit(uint8_t mode_set);
 
 uint8_t rgb2palette1(uint8_t r, uint8_t g, uint8_t b);
+
+// 4-bit stuff
+uint8_t rgb2vga4b(int r, int g, int b);
+void drawpixel4rgb(int x, int y, unsigned char red, unsigned char grn, unsigned char blu);
+
+// Fast conversion with grayscale handling
+unsigned char rgb_to_vga16_fast(unsigned char r, unsigned char g, unsigned char b);
 
 #ifdef __C86__
 // init 4-bit color routines in assembly
@@ -79,11 +87,20 @@ void vga_drawpixel(int x, int y, int c);
 void vga_drawhline(int x1, int x2, int y, int c);
 void vga_drawvline(int x, int y1, int y2, int c);
 int vga_readpixel(int x, int y);
+
+void writevid(uint16_t offset, uint8_t c);
+
 #endif
 
 #if 0
 // this is very slow - don't use it
 uint8_t rgb2vga(int r, int g, int b);
 #endif
+
+#ifdef __WATCOMC__
+extern uint8_t __far *CGA;
+extern uint8_t __far *VGA;
+#endif
+
 
 #endif // GRAPHICS_H_

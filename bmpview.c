@@ -27,6 +27,7 @@
 #include <signal.h>
 
 #include "graphics.h"
+#include "utils.h"
 
 // #define DEBUG
 
@@ -129,6 +130,7 @@ int bmp_load_and_display(const char *filename, int mode)
 	uint8_t *line_buffer; // max 640 pixels per line on 3 byte colors
 	uint16_t offset;
 	int load_palette = 1; // set to 0 not to touch palette registers
+	uint8_t *palette = NULL;
 #if 0
 	uint8_t *old_palette = NULL;
 #endif
@@ -186,15 +188,15 @@ int bmp_load_and_display(const char *filename, int mode)
 			uint8_t col[4];
 
 #if 0 // disabled code for saving and restoring the VGA palette - this is not needed as mode change triggers palette cleanup
-			uint16_t offsetp = 0;
+			uint16_t offsetop = 0;
 			printf("Saving current VGA palette.\n");
 			old_palette = malloc(num_colors * 3);
 			for(int i = 0; i < num_colors; i++)
 			{
 				get_palette(col, col+1, col+2, i);
-				old_palette[offsetp++] = col[0]; // red
-				old_palette[offsetp++] = col[1]; // green
-				old_palette[offsetp++] = col[2]; // blue
+				old_palette[offsetop++] = col[0]; // red
+				old_palette[offsetop++] = col[1]; // green
+				old_palette[offsetop++] = col[2]; // blue
 
 			}
 #endif
@@ -203,6 +205,8 @@ int bmp_load_and_display(const char *filename, int mode)
 			printf("Palette: \n");
 #endif
 
+			uint16_t offsetp = 0;
+			palette = malloc(num_colors * 3);
 			for(int i = 0; i < num_colors; i++)
 			{
 				fread(&col, 1, 4, fp);
@@ -211,6 +215,9 @@ int bmp_load_and_display(const char *filename, int mode)
 				printf("%hhu %hhu %hhu\n",col[2], col[1], col[0]);
 #endif
 				set_palette(col[2], col[1], col[0], i);
+				palette[offsetp++] = col[2];
+				palette[offsetp++] = col[1];
+				palette[offsetp++] = col[0];
 			}
 		}
 		else
@@ -257,9 +264,17 @@ int bmp_load_and_display(const char *filename, int mode)
 				{
 					fread(line_buffer, 1, line_size, fp);
 
+					offset = 0;
 					for (int j = 0; j < line_size; j++)
 					{
-						drawpixel(j, i, line_buffer[j]);
+						if (mode == VIDEO_MODE_13)
+							drawpixel(j, i, line_buffer[j]);
+						else
+						{
+							uint16_t coltmp = (uint16_t) line_buffer[j] * 3;
+							drawpixel(j, i, rgb_to_vga16_fast(palette[coltmp], palette[coltmp + 1], palette[coltmp + 2]));
+
+						}
 					}
 				}
 				free(line_buffer);
@@ -303,6 +318,9 @@ int bmp_load_and_display(const char *filename, int mode)
 		if (mode == VIDEO_MODE_13)
 			load_palette1(VIDEO_MODE_13);
 
+		if (mode == VIDEO_MODE_12)
+			load_palette1_4bit(VIDEO_MODE_12);
+
 		for(int i = height - 1; i >= 0; i--)
 		{
 			offset = 0;
@@ -312,10 +330,15 @@ int bmp_load_and_display(const char *filename, int mode)
 			{
 				uint8_t pixel;
 				if (mode == VIDEO_MODE_13)
+				{
 					pixel = rgb2palette1(line_buffer[offset+2], line_buffer[offset+1], line_buffer[offset]); // blue, green and red
+					drawpixel(j, i, pixel);
+				}
 				else
-					pixel = rgb2palette1(line_buffer[offset+2], line_buffer[offset+1], line_buffer[offset]) >> 4; // temporary
-				drawpixel(j, i, pixel);
+				{
+					pixel = rgb_to_vga16_fast(line_buffer[offset+2], line_buffer[offset+1], line_buffer[offset]);
+					drawpixel(j, i, pixel);
+				}
 				offset += 3;
 			}
 		}
@@ -360,92 +383,59 @@ void sig_handler(int signo)
 }
 #endif
 
-static int print_usage()
-{
-   printf("Usage: bmpview [-m mode] [source_file.bmp]\n");
-   printf("source_file: BMP file to decode.\n");
-   printf("mode: IBM PC BIOS mode, in hexadecimal (supported: 0x10 EGA 640x350 4-bit, 0x12 VGA 640x480 4-bit and 0x13 320x200 8-bit).\n");
-   printf("\n");
-   printf("Displays a BMP image in the screen.\n");
-   printf("\n");
-   return 0;
-}
-
 int main(int argc, char *argv[])
 {
-   const char *filename;
-   uint16_t mode_wanted = VIDEO_MODE_13;
+	char *filename;
+	uint16_t mode_wanted = VIDEO_MODE_13;
 
-   printf("ELKS BMP Viewer v0.2\n");
+	printf("ELKS BMP Viewer v0.2\n");
 
-   if (argc == 1)
-      return print_usage();
+	if (parse_args(argc, argv, &filename, &mode_wanted))
+		return EXIT_FAILURE;
 
-   for (int i = 0; i < argc; i++)
-   {
-	   if (argv[i][0] == '-' && argv[i][1] != 0)
-	   {
-		   switch(argv[i][1])
-		   {
-		   case 'm':
-			   mode_wanted = strtol(argv[i+1], NULL, 16);
-			   i++;
-			   break;
-		   case 'h':
-			   print_usage();
-			   return EXIT_SUCCESS;
-		   default:
-			   print_usage();
-			   return EXIT_FAILURE;
-		   }
-	   }
-   }
-
-   filename = argv[argc-1];
-
-   mode = get_mode();
+	mode = get_mode();
 
 #ifndef __C86__
-   if (signal(SIGINT, sig_handler) == SIG_ERR)
-	   printf("\ncan't catch SIGINT\n");
+	if (signal(SIGINT, sig_handler) == SIG_ERR)
+		printf("\ncan't catch SIGINT\n");
 #endif
 
-   printf("Source File:               \"%s\"\n", filename);
-   printf("Current Graphics Mode:     \"0x%hx\"\n", mode);
-   printf("Selected Graphics Mode:    \"0x%hx\"\n\n", mode_wanted);
-   printf("Press any key to diplay the image.\n");
-   printf("Then press any key to exit!\n");
-   getchar();
+	printf("Source File:               \"%s\"\n", filename);
+	printf("Current Graphics Mode:     \"0x%hx\"\n", mode);
+	printf("Selected Graphics Mode:    \"0x%hx\"\n\n", mode_wanted);
+	printf("Press any key to diplay the image.\n");
+	printf("Then press any key to exit!\n");
+	getchar();
 
-   set_mode(mode_wanted);
+	set_mode(mode_wanted);
 
 #ifdef DEBUG
-   printf("Palette before: \n");
-   for (uint16_t i = 0; i < 256; i++)
-   {
-	   uint8_t red, green, blue;
-	   get_palette(&red, &green, &blue, i);
-	   printf("%hhu %hhu %hhu\n", red, green, blue);
-   }
+	printf("Palette before: \n");
+	for (uint16_t i = 0; i < 256; i++)
+	{
+		uint8_t red, green, blue;
+		get_palette(&red, &green, &blue, i);
+		printf("%hhu %hhu %hhu\n", red, green, blue);
+	}
 #endif
 
-   int ret = bmp_load_and_display(filename, VIDEO_MODE_13);
+	int ret = bmp_load_and_display(filename, mode_wanted);
 
 #ifdef DEBUG
-   printf("Palette after: \n");
-   for (uint16_t i = 0; i < 256; i++)
-   {
-	   uint8_t red, green, blue;
-	   get_palette(&red, &green, &blue, i);
-	   printf("%hhu %hhu %hhu\n", red, green, blue);
-   }
+	printf("Palette after: \n");
+	for (uint16_t i = 0; i < 256; i++)
+	{
+		uint8_t red, green, blue;
+		get_palette(&red, &green, &blue, i);
+		printf("%hhu %hhu %hhu\n", red, green, blue);
+	}
 #endif
 
-   getchar();
-   set_mode(mode);
+	getchar();
+	set_mode(mode);
 
-   if (ret != 0)
-	   fprintf(stderr, "Error reading bmp file.\n");
+	if (ret != 0)
+		fprintf(stderr, "Error reading bmp file.\n");
 
-   return ret;
+	return ret;
 }

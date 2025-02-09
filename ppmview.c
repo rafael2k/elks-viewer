@@ -27,6 +27,7 @@
 #include <signal.h>
 
 #include "graphics.h"
+#include "utils.h"
 
 // #define DEBUG
 
@@ -54,16 +55,6 @@ void sig_handler(int signo)
 int is_graph(int c)
 {
   return ((c > 0x20) && (c <= 0x7E));
-}
-
-static int print_usage()
-{
-   printf("Usage: ppmview [source_file.ppm]\n");
-   printf("source_file: PPM or PGM file to decode.\n");
-   printf("\n");
-   printf("Displays a ppm or pgm image in the screen.\n");
-   printf("\n");
-   return EXIT_FAILURE;
 }
 
 int ppm_load_and_display(const char *pFilename, int graph_mode)
@@ -230,31 +221,32 @@ int ppm_load_and_display(const char *pFilename, int graph_mode)
 }
 
 //------------------------------------------------------------------------------
-int main(int arg_c, char *arg_v[])
+int main(int argc, char *argv[])
 {
-   const char *filename;
+	char *filename;
+	uint16_t mode_wanted = VIDEO_MODE_13;
 
-   printf("ELKS PPM Viewer v0.1\n");
+	printf("ELKS PPM/PGM Viewer v0.2\n");
 
-   if (arg_c != 2)
-      return print_usage();
 
-   filename = arg_v[1];
+	if (parse_args(argc, argv, &filename, &mode_wanted))
+		return EXIT_FAILURE;
 
-   mode = get_mode();
+	mode = get_mode();
 
 #ifndef __C86__
-   if (signal(SIGINT, sig_handler) == SIG_ERR)
-	   printf("\ncan't catch SIGINT\n");
+	if (signal(SIGINT, sig_handler) == SIG_ERR)
+		printf("\ncan't catch SIGINT\n");
 #endif
 
-   printf("Source File:               \"%s\"\n", filename);
-   printf("Current Graphics Mode:     \"%hu\"\n\n", mode);
-   printf("Press any key to diplay the image.\n");
-   printf("Then press any key to exit!\n");
-   getchar();
+	printf("Source File:               \"%s\"\n", filename);
+	printf("Current Graphics Mode:     \"0x%hx\"\n", mode);
+	printf("Selected Graphics Mode:    \"0x%hx\"\n\n", mode_wanted);
+	printf("Press any key to diplay the image.\n");
+	printf("Then press any key to exit!\n");
+	getchar();
 
-   set_mode(VIDEO_MODE_13);
+   set_mode(mode_wanted);
 
 #ifdef DEBUG
    // prints the current palette
@@ -266,7 +258,7 @@ int main(int arg_c, char *arg_v[])
    }
 #endif
 
-   int ret = ppm_load_and_display(filename, VIDEO_MODE_13);
+   int ret = ppm_load_and_display(filename, mode_wanted);
 
    getchar();
    set_mode(mode);
