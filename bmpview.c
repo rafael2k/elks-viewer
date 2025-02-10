@@ -205,13 +205,7 @@ int bmp_load_and_display(const char *filename, int graph_mode)
 		line_size = width * (pixel_format >> 3);
 
 	printf("line size: %d\n", line_size);
-	int padding = (line_size) % 4;
-
-	if (padding > 0)
-	{
-		printf("Padding not supported yet. Need to fix!\n");
-		return -1;
-	}
+	int pad_size = (line_size) % 4;
 
 	// load palette
 	if (pixel_format <= 8)
@@ -247,7 +241,11 @@ int bmp_load_and_display(const char *filename, int graph_mode)
 #ifdef DEBUG
 				printf("%hhu %hhu %hhu\n",col[2], col[1], col[0]);
 #endif
-				set_palette(col[2], col[1], col[0], i);
+				// we just set the palette in hardware if we are using if input image matches the gfx mode
+				if ( (pixel_format == 8 && graph_mode == VIDEO_MODE_13) ||
+					 (pixel_format == 4 && (graph_mode == VIDEO_MODE_12 || graph_mode == VIDEO_MODE_10)) )
+					set_palette(col[2], col[1], col[0], i);
+
 				palette[offsetp++] = col[2];
 				palette[offsetp++] = col[1];
 				palette[offsetp++] = col[0];
@@ -265,6 +263,8 @@ int bmp_load_and_display(const char *filename, int graph_mode)
 			for(int i = height - 1; i >= 0; i--)
 			{
 				fread(line_buffer, 1, line_size, fp);
+				if (pad_size)
+					fseek(fp, (long) pad_size, SEEK_CUR);
 
 				// TODO: may be we could verify if we are not printing more pixels than width?
 				for (int j = 0; j < line_size; j++)
@@ -289,6 +289,9 @@ int bmp_load_and_display(const char *filename, int graph_mode)
 				for(int i = height - 1; i >= 0; i--)
 				{
 					fread(line_buffer, 1, line_size, fp);
+					if (pad_size)
+						fseek(fp, (long) pad_size, SEEK_CUR);
+
 					// TODO: we need to convert using the provided palette!!
 					for (int j = 0; j < line_size; j++)
 					{
@@ -313,6 +316,8 @@ int bmp_load_and_display(const char *filename, int graph_mode)
 				for(int i = height - 1; i >=0; i--)
 				{
 					fread(line_buffer, 1, line_size, fp);
+					if (pad_size)
+						fseek(fp, (long) pad_size, SEEK_CUR);
 
 					offset = 0;
 					for (int j = 0; j < line_size; j++)
@@ -346,6 +351,8 @@ int bmp_load_and_display(const char *filename, int graph_mode)
 		{
 			offset = 0;
 			fread(line_buffer, 1, line_size, fp);
+			if (pad_size)
+				fseek(fp, (long) pad_size, SEEK_CUR);
 
 			for (int j = 0; j < width; j++)
 			{
