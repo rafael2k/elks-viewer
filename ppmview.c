@@ -139,10 +139,20 @@ int ppm_load_and_display(const char *pFilename, int graph_mode)
 
 	line_buffer = malloc(line_size);
 
-	if (is_gray)
-		load_palette1g(VIDEO_MODE_13);
+	if (graph_mode == VIDEO_MODE_13)
+	{
+		if (is_gray)
+			load_palette1g(VIDEO_MODE_13);
+		else
+			load_palette1(VIDEO_MODE_13);
+	}
 	else
-		load_palette1(VIDEO_MODE_13);
+	{
+		if (is_gray)
+			load_palette1g_4bit(graph_mode);
+//		else
+//			load_palette1_4bit(graph_mode);
+	}
 
 	// read now a whole line before writing to screen
 	for(i = 0; i < height; i++)
@@ -172,7 +182,15 @@ int ppm_load_and_display(const char *pFilename, int graph_mode)
 			offset = 0;
 			for (j = 0; j < width; j++)
 			{
-				uint8_t pixel = rgb2palette1(line_buffer[offset], line_buffer[offset + 1], line_buffer[offset + 2]);
+				uint8_t pixel;
+				if (mode == VIDEO_MODE_13)
+				{
+					pixel = rgb2palette1(line_buffer[offset], line_buffer[offset+1], line_buffer[offset+2]);
+				}
+				else
+				{
+					pixel = rgb_to_vga16_fast(line_buffer[offset], line_buffer[offset+1], line_buffer[offset+2]);
+				}
 				drawpixel(j, i, pixel);
 				offset += 3;
 			}
@@ -184,7 +202,15 @@ int ppm_load_and_display(const char *pFilename, int graph_mode)
 
 			for (j = 0; j < width; j++)
 			{
-				uint8_t pixel = rgb2palette1(line_buffer[offset], line_buffer[offset + 1], line_buffer[offset + 2]);
+				uint8_t pixel;
+				if (mode == VIDEO_MODE_13)
+				{
+					pixel = rgb2palette1(line_buffer[offset], line_buffer[offset+1], line_buffer[offset+2]);
+				}
+				else
+				{
+					pixel = rgb_to_vga16_fast(line_buffer[offset], line_buffer[offset+1], line_buffer[offset+2]);
+				}
 				drawpixel(j, i, pixel);
 				offset += 3;
 			}

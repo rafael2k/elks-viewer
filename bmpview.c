@@ -318,7 +318,7 @@ int bmp_load_and_display(const char *filename, int mode)
 		if (mode == VIDEO_MODE_13)
 			load_palette1(VIDEO_MODE_13);
 
-		if (mode == VIDEO_MODE_12)
+		if (mode == VIDEO_MODE_12 || mode == VIDEO_MODE_10)
 			load_palette1_4bit(VIDEO_MODE_12);
 
 		for(int i = height - 1; i >= 0; i--)
@@ -332,13 +332,12 @@ int bmp_load_and_display(const char *filename, int mode)
 				if (mode == VIDEO_MODE_13)
 				{
 					pixel = rgb2palette1(line_buffer[offset+2], line_buffer[offset+1], line_buffer[offset]); // blue, green and red
-					drawpixel(j, i, pixel);
 				}
 				else
 				{
 					pixel = rgb_to_vga16_fast(line_buffer[offset+2], line_buffer[offset+1], line_buffer[offset]);
-					drawpixel(j, i, pixel);
 				}
+				drawpixel(j, i, pixel);
 				offset += 3;
 			}
 		}

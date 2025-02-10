@@ -67,9 +67,10 @@ uint16_t get_mode();
 void set_palette(uint8_t red, uint8_t green, uint8_t blue, uint16_t idx);
 void get_palette(uint8_t *red, uint8_t *green, uint8_t *blue, uint16_t idx);
 
-void load_palette1(uint8_t mode_set);
-void load_palette1g(uint8_t mode_set);
-void load_palette1_4bit(uint8_t mode_set);
+void load_palette1(uint8_t mode_set); // color 256
+void load_palette1g(uint8_t mode_set); // gray 256
+void load_palette1_4bit(uint8_t mode_set); // color 16
+void load_palette1g_4bit(uint8_t mode_set); // gray 16
 
 uint8_t rgb2palette1(uint8_t r, uint8_t g, uint8_t b);
 

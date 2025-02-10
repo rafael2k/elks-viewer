@@ -393,6 +393,24 @@ void load_palette1g(uint8_t mode_set)
 	}
 }
 
+// this is our grayscale palette
+void load_palette1g_4bit(uint8_t mode_set)
+{
+	uint8_t luminance;
+	if (mode_set == VIDEO_MODE_12)
+	{
+		int num_colors = 256;
+		int idx = 0;
+		for(int i = 0; i < num_colors; i += 16)
+		{
+			luminance = (uint8_t) i;
+			set_palette(luminance, luminance, luminance, idx);
+			idx++;
+		}
+	}
+}
+
+
 // format for light conversion from RGB 24bit (palette1) is RRRGGGBB
 void load_palette1(uint8_t mode_set)
 {
