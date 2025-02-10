@@ -183,14 +183,10 @@ int ppm_load_and_display(const char *pFilename, int graph_mode)
 			for (j = 0; j < width; j++)
 			{
 				uint8_t pixel;
-				if (mode == VIDEO_MODE_13)
-				{
+				if (graph_mode == VIDEO_MODE_13)
 					pixel = rgb2palette1(line_buffer[offset], line_buffer[offset+1], line_buffer[offset+2]);
-				}
 				else
-				{
 					pixel = rgb_to_vga16_fast(line_buffer[offset], line_buffer[offset+1], line_buffer[offset+2]);
-				}
 				drawpixel(j, i, pixel);
 				offset += 3;
 			}
@@ -203,14 +199,10 @@ int ppm_load_and_display(const char *pFilename, int graph_mode)
 			for (j = 0; j < width; j++)
 			{
 				uint8_t pixel;
-				if (mode == VIDEO_MODE_13)
-				{
+				if (graph_mode == VIDEO_MODE_13)
 					pixel = rgb2palette1(line_buffer[offset], line_buffer[offset+1], line_buffer[offset+2]);
-				}
 				else
-				{
 					pixel = rgb_to_vga16_fast(line_buffer[offset], line_buffer[offset+1], line_buffer[offset+2]);
-				}
 				drawpixel(j, i, pixel);
 				offset += 3;
 			}
@@ -227,7 +219,10 @@ int ppm_load_and_display(const char *pFilename, int graph_mode)
 
 			for (j = 0; j < width; j++)
 			{
-				drawpixel(j, i, line_buffer[j]);
+				if (graph_mode == VIDEO_MODE_13)
+					drawpixel(j, i, line_buffer[j]);
+				else
+					drawpixel(j, i, line_buffer[j] >> 4);
 			}
 		}
 		else if (is_ascii == 0 && is_gray == 1) // PGM P5
@@ -236,7 +231,10 @@ int ppm_load_and_display(const char *pFilename, int graph_mode)
 
 			for (j = 0; j < width; j++)
 			{
-				drawpixel(j, i, line_buffer[j]);
+				if (graph_mode == VIDEO_MODE_13)
+					drawpixel(j, i, line_buffer[j]);
+				else
+					drawpixel(j, i, line_buffer[j] >> 4);
 			}
 		}
 	}

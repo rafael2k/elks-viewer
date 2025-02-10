@@ -21,7 +21,6 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <math.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -31,6 +30,7 @@
 #include <assert.h>
 
 #include "graphics.h"
+#include "utils.h"
 
 extern void *malloc(size_t size);
 extern void *calloc(size_t nmemb, size_t size);
@@ -58,24 +58,13 @@ void sig_handler(int signo)
 		set_mode(mode);
 }
 
-static int print_usage()
-{
-   printf("Usage: jpgview [source_file] [dest_file] <reduce>\n");
-   printf("source_file: JPEG file to decode. Note: Progressive files are not supported.\n");
-   printf("dest_file: Output .raw file.\n");
-   printf("reduce: Optional, if 1 the JPEG file is quickly decoded to ~1/8th resolution.\n");
-   printf("\n");
-   printf("Outputs 8-bit grayscale or truecolor 24-bit raw files.\n");
-   return EXIT_FAILURE;
-}
-
 unsigned char pjpeg_need_bytes_callback(unsigned char* pBuf, unsigned char buf_size, unsigned char *pBytes_actually_read, void *pCallback_data)
 {
    uint32_t n;
    pCallback_data;
    
    n = min(g_nInFileSize - g_nInFileOfs, buf_size);
-   if (n && (fread(pBuf, 1, n, g_pInFile) != n))
+   if (n && (fread(pBuf, 1, (uint16_t) n, g_pInFile) != n))
       return PJPG_STREAM_READ_ERROR;
    *pBytes_actually_read = (unsigned char)(n);
    g_nInFileOfs += n;
@@ -90,7 +79,7 @@ unsigned char pjpeg_need_bytes_callback(unsigned char* pBuf, unsigned char buf_s
 // If reduce is non-zero, the image will be more quickly decoded at approximately
 // 1/8 resolution (the actual returned resolution will depend on the JPEG 
 // subsampling factor).
-int pjpeg_load_and_display(const char *pFilename, int *x, int *y, int *comps, pjpeg_scan_type_t *pScan_type, int reduce)
+int pjpeg_load_and_display(const char *pFilename, int *x, int *y, int *comps, pjpeg_scan_type_t *pScan_type, int graph_mode)
 {
    pjpeg_image_info_t image_info;
    int mcu_x = 0;
@@ -99,6 +88,7 @@ int pjpeg_load_and_display(const char *pFilename, int *x, int *y, int *comps, pj
    uint8_t status;
    uint16_t decoded_width, decoded_height;
    uint16_t row_blocks_per_mcu, col_blocks_per_mcu;
+   int reduce = 0;
 
    *x = 0;
    *y = 0;
@@ -111,9 +101,9 @@ int pjpeg_load_and_display(const char *pFilename, int *x, int *y, int *comps, pj
 
    g_nInFileOfs = 0;
 
-   fseek(g_pInFile, 0, SEEK_END);
+   fseek(g_pInFile, 0L, SEEK_END);
    g_nInFileSize = ftell(g_pInFile);
-   fseek(g_pInFile, 0, SEEK_SET);
+   fseek(g_pInFile, 0L, SEEK_SET);
       
    status = pjpeg_decode_init(&image_info, pjpeg_need_bytes_callback, NULL, (unsigned char)reduce);
          
@@ -130,9 +120,20 @@ int pjpeg_load_and_display(const char *pFilename, int *x, int *y, int *comps, pj
    }
 
    if (image_info.m_scanType == PJPG_GRAYSCALE)
-       load_palette1g(VIDEO_MODE_13);
+   {
+	   if (graph_mode == VIDEO_MODE_13)
+		   load_palette1g(graph_mode);
+	   else
+		   load_palette1g_4bit(graph_mode);
+
+   }
    else
-       load_palette1(VIDEO_MODE_13);
+   {
+	   if (graph_mode == VIDEO_MODE_13)
+		   load_palette1(graph_mode);
+//	   else
+//		   load_palette1_4bit(graph_mode);
+   }
 
    if (pScan_type)
       *pScan_type = image_info.m_scanType;
@@ -150,97 +151,112 @@ int pjpeg_load_and_display(const char *pFilename, int *x, int *y, int *comps, pj
 
    for ( ; ; )
    {
-      int y, x;
-
-      status = pjpeg_decode_mcu();
+	   status = pjpeg_decode_mcu();
       
-      if (status)
-      {
-         if (status != PJPG_NO_MORE_BLOCKS)
-         {
-            printf("pjpeg_decode_mcu() failed with status %u\n", status);
+	   if (status)
+	   {
+		   if (status != PJPG_NO_MORE_BLOCKS)
+		   {
+			   printf("pjpeg_decode_mcu() failed with status %u\n", status);
 
-            fclose(g_pInFile);
-            return -1;
-         }
+			   fclose(g_pInFile);
+			   return -1;
+		   }
 
-         break;
-      }
+		   break;
+	   }
 
-      if (mcu_y >= image_info.m_MCUSPerCol)
-      {
-         fclose(g_pInFile);
-         return -1;
-      }
+	   if (mcu_y >= image_info.m_MCUSPerCol)
+	   {
+		   fclose(g_pInFile);
+		   return -1;
+	   }
 
-      if (reduce)
-      {
-         // In reduce mode, only the first pixel of each 8x8 block is valid.
-		 int xx = mcu_x * row_blocks_per_mcu;
-		 int yy = mcu_y * col_blocks_per_mcu;
+	   if (reduce)
+	   {
+		   // In reduce mode, only the first pixel of each 8x8 block is valid.
+		   int xx = mcu_x * row_blocks_per_mcu;
+		   int yy = mcu_y * col_blocks_per_mcu;
 
-         if (image_info.m_scanType == PJPG_GRAYSCALE)
-         {
-			 drawpixel(xx, yy, image_info.m_pMCUBufR[0]);
-         }
-         else
-         {
-            uint16_t y, x;
-            for (y = 0; y < col_blocks_per_mcu; y++)
-            {
-                uint16_t src_ofs = (y * 128U);
-                for (x = 0; x < row_blocks_per_mcu; x++)
-                {
-					uint8_t pixel = rgb2palette1(image_info.m_pMCUBufR[src_ofs], image_info.m_pMCUBufG[src_ofs], image_info.m_pMCUBufB[src_ofs]);
-					drawpixel(xx + x, yy + y, pixel);
-                    src_ofs += 64;
-                }
+		   if (image_info.m_scanType == PJPG_GRAYSCALE)
+		   {
+			   if (graph_mode == VIDEO_MODE_13)
+				   drawpixel(xx, yy, image_info.m_pMCUBufR[0]);
+			   else
+				   drawpixel(xx, yy, image_info.m_pMCUBufR[0] >> 4);
+		   }
+		   else
+		   {
+			   uint16_t y, x;
+			   for (y = 0; y < col_blocks_per_mcu; y++)
+			   {
+				   uint16_t src_ofs = (y * 128U);
+				   for (x = 0; x < row_blocks_per_mcu; x++)
+				   {
+					   uint8_t pixel;
+					   if (graph_mode == VIDEO_MODE_13)
+						   pixel = rgb2palette1(image_info.m_pMCUBufR[src_ofs], image_info.m_pMCUBufG[src_ofs], image_info.m_pMCUBufB[src_ofs]);
+					   else
+						   pixel = rgb_to_vga16_fast(image_info.m_pMCUBufR[src_ofs], image_info.m_pMCUBufG[src_ofs], image_info.m_pMCUBufB[src_ofs]);
+					   drawpixel(xx + x, yy + y, pixel);
+					   src_ofs += 64;
+				   }
 
-               xx += row_pitch - row_blocks_per_mcu;
-            }
-         }
-      }
-      else
-      {
-         // Display MCU's pixel blocks to graphics adapter
-		  int xx = mcu_x * image_info.m_MCUWidth;
-		  int yy = mcu_y * image_info.m_MCUHeight;
-		  fprintf(stderr, "x = %u\ny = %u\n\n", mcu_x * image_info.m_MCUWidth, mcu_y * image_info.m_MCUHeight);
+				   xx += row_pitch - row_blocks_per_mcu;
+			   }
+		   }
+	   }
+	   else
+	   {
+		   // Display MCU's pixel blocks to graphics adapter
+		   int xx = mcu_x * image_info.m_MCUWidth;
+		   int yy = mcu_y * image_info.m_MCUHeight;
+		   fprintf(stderr, "x = %u\ny = %u\n\n", mcu_x * image_info.m_MCUWidth, mcu_y * image_info.m_MCUHeight);
 
-		  for (y = 0; y < image_info.m_MCUHeight; y += 8)
-		  {
-			  const int by_limit = min(8, image_info.m_height - (mcu_y * image_info.m_MCUHeight + y));
+		   uint16_t y, x;
+		   for (y = 0; y < image_info.m_MCUHeight; y += 8)
+		   {
+			   const int by_limit = min(8, image_info.m_height - (mcu_y * image_info.m_MCUHeight + y));
 
-			  for (x = 0; x < image_info.m_MCUWidth; x += 8)
-			  {
-				  // Compute source byte offset of the block in the decoder's MCU buffer.
-				  uint16_t src_ofs = (x << 3) + (y << 4);
-				  const uint8_t *pSrcR = image_info.m_pMCUBufR + src_ofs;
-				  const uint8_t *pSrcG = image_info.m_pMCUBufG + src_ofs;
-				  const uint8_t *pSrcB = image_info.m_pMCUBufB + src_ofs;
+			   for (x = 0; x < image_info.m_MCUWidth; x += 8)
+			   {
+				   // Compute source byte offset of the block in the decoder's MCU buffer.
+				   uint16_t src_ofs = (x << 3) + (y << 4);
+				   const uint8_t *pSrcR = image_info.m_pMCUBufR + src_ofs;
+				   const uint8_t *pSrcG = image_info.m_pMCUBufG + src_ofs;
+				   const uint8_t *pSrcB = image_info.m_pMCUBufB + src_ofs;
 
-				  const int bx_limit = min(8, image_info.m_width - (mcu_x * image_info.m_MCUWidth + x));
+				   const int bx_limit = min(8, image_info.m_width - (mcu_x * image_info.m_MCUWidth + x));
 
-				  if (image_info.m_scanType == PJPG_GRAYSCALE)
-				  {
-					  int bx, by;
-					  for (by = 0; by < by_limit; by++)
-					  {
-						  for (bx = 0; bx < bx_limit; bx++)
-							  drawpixel(xx + x + bx, yy + y + by, *pSrcR++);
-
-						  pSrcR += (8 - bx_limit);
-					  }
-				  }
-				  else
-				  {
-					  int bx, by;
-					  for (by = 0; by < by_limit; by++)
+				   if (image_info.m_scanType == PJPG_GRAYSCALE)
+				   {
+					   int bx, by;
+					   for (by = 0; by < by_limit; by++)
+					   {
+						   for (bx = 0; bx < bx_limit; bx++)
+						   {
+							   if (graph_mode == VIDEO_MODE_13)
+								   drawpixel(xx + x + bx, yy + y + by, *pSrcR);
+							   else
+								   drawpixel(xx + x + bx, yy + y + by, *pSrcR >> 4);
+							   pSrcR++;
+						   }
+						   pSrcR += (8 - bx_limit);
+					   }
+				   }
+				   else
+				   {
+					   int bx, by;
+					   for (by = 0; by < by_limit; by++)
 					  {
 
 						  for (bx = 0; bx < bx_limit; bx++)
 						  {
-							  uint8_t pixel = rgb2palette1(*pSrcR, *pSrcG, *pSrcB);
+							  uint8_t pixel;
+							  if (graph_mode == VIDEO_MODE_13)
+								  pixel = rgb2palette1(*pSrcR, *pSrcG, *pSrcB);
+							  else
+								  pixel = rgb_to_vga16_fast(*pSrcR, *pSrcG, *pSrcB);
 							  drawpixel(xx + x + bx, yy + y + by, pixel);
 							  pSrcR++;
 							  pSrcG++;
@@ -275,60 +291,55 @@ int pjpeg_load_and_display(const char *pFilename, int *x, int *y, int *comps, pj
    return 0;
 }
 
-int main(int arg_c, char *arg_v[])
+int main(int argc, char *argv[])
 {
-   int n = 1;
-   const char *pSrc_filename = NULL;
-   int width = 0, height = 0, comps = 0;
-   pjpeg_scan_type_t scan_type = PJPG_GRAYSCALE;
-   const char* p = "?";
-   int reduce = 0;
-   
-   printf("ELKS JPEG Viewer v0.1\n");
-   printf("Based on PicoJPEG\n");
+	char *filename = NULL;
+	int width = 0, height = 0, comps = 0;
+	pjpeg_scan_type_t scan_type = PJPG_GRAYSCALE;
+	const char* p = "?";
+	uint16_t mode_wanted = VIDEO_MODE_13;
 
-   if ((arg_c < 2) || (arg_c > 3))
-      return print_usage();
-   
-   pSrc_filename = arg_v[n++];
-   if (arg_c == 3)
-       reduce = atoi(arg_v[n++]) != 0;
+	printf("ELKS JPEG Viewer v0.2\n");
+	printf("Based on PicoJPEG\n");
 
-   mode = get_mode();
+	if (parse_args(argc, argv, &filename, &mode_wanted))
+		return EXIT_FAILURE;
 
-   if (signal(SIGINT, sig_handler) == SIG_ERR)
-	   printf("\ncan't catch SIGINT\n");
+	mode = get_mode();
 
-   printf("Source File:      \"%s\"\n", pSrc_filename);
-   printf("Reduce during decoding: %u\n", reduce);
-   printf("Current Graphics Mode:     \"%hu\"\n\n", mode);
-   printf("Press any key to diplay the image.\n");
-   printf("Then press any key to exit!\n");
+#ifndef __C86__
+	if (signal(SIGINT, sig_handler) == SIG_ERR)
+		printf("\ncan't catch SIGINT\n");
+#endif
+	printf("Source File:               \"%s\"\n", filename);
+	printf("Current Graphics Mode:     \"0x%hx\"\n", mode);
+	printf("Selected Graphics Mode:    \"0x%hx\"\n\n", mode_wanted);
+	printf("Press any key to diplay the image.\n");
+	printf("Then press any key to exit!\n");
+	getchar();
 
-   getchar();
+	set_mode(mode_wanted);
 
-   set_mode(VIDEO_MODE_13);
+	int ret = pjpeg_load_and_display(filename, &width, &height, &comps, &scan_type, mode_wanted);
 
-   int ret = pjpeg_load_and_display(pSrc_filename, &width, &height, &comps, &scan_type, reduce);
+	getchar();
 
-   getchar();
+	set_mode(mode);
 
-   set_mode(TEXT_MODE_3);
+	switch (scan_type)
+	{
+	case PJPG_GRAYSCALE: p = "GRAYSCALE"; break;
+	case PJPG_YH1V1: p = "H1V1"; break;
+	case PJPG_YH2V1: p = "H2V1"; break;
+	case PJPG_YH1V2: p = "H1V2"; break;
+	case PJPG_YH2V2: p = "H2V2"; break;
+	}
 
-   switch (scan_type)
-   {
-      case PJPG_GRAYSCALE: p = "GRAYSCALE"; break;
-      case PJPG_YH1V1: p = "H1V1"; break;
-      case PJPG_YH2V1: p = "H2V1"; break;
-      case PJPG_YH1V2: p = "H1V2"; break;
-      case PJPG_YH2V2: p = "H2V2"; break;
-   }
-
-   if (ret != 0)
-	   printf("Error decoding the image.\n");
-   else
-	   printf("Successfully Decoded Image!\nWidth: %i, Height: %i, Comps: %i, Scan type: %s\n", width, height, comps, p);
+	if (ret != 0)
+		printf("Error decoding the image.\n");
+	else
+		printf("Successfully Decoded Image!\nWidth: %i, Height: %i, Comps: %i, Scan type: %s\n", width, height, comps, p);
 
 
-   return EXIT_SUCCESS;
+	return EXIT_SUCCESS;
 }
