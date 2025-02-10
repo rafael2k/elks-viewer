@@ -31,6 +31,21 @@
 
 // #define DEBUG
 
+uint16_t mode = 0;
+
+#ifndef __C86
+void sig_handler(int signo)
+{
+	if (signo == SIGINT)
+		printf("received SIGINT\n");
+
+	// revert to mode in use when software was started
+	if (mode)
+		set_mode(mode);
+}
+#endif
+
+
 // Uncompress BMP image (either RLE8 or RLE4)
 void decompress_RLE_BMP(FILE *fp, unsigned char bpp, int width, int height, uint8_t palette){
 	int xpos = 0;
@@ -120,7 +135,7 @@ void decompress_RLE_BMP(FILE *fp, unsigned char bpp, int width, int height, uint
 }
 
 
-int bmp_load_and_display(const char *filename, int mode)
+int bmp_load_and_display(const char *filename, int graph_mode)
 {
 	uint16_t header;
 	uint16_t dib_header_size;
@@ -180,6 +195,24 @@ int bmp_load_and_display(const char *filename, int mode)
 	fprintf(stderr, "offset: %u\n", file_offset);
 
 #endif
+
+	uint16_t line_size;
+	if (pixel_format == 1)
+		line_size = width >> 3;
+	if (pixel_format == 4)
+		line_size = width >> 1;
+	if (pixel_format >= 8)
+		line_size = width * (pixel_format >> 3);
+
+	printf("line size: %d\n", line_size);
+	int padding = (line_size) % 4;
+
+	if (padding > 0)
+	{
+		printf("Padding not supported yet. Need to fix!\n");
+		return -1;
+	}
+
 	// load palette
 	if (pixel_format <= 8)
 	{
@@ -225,6 +258,25 @@ int bmp_load_and_display(const char *filename, int mode)
 			fseek(fp, (long int) num_colors << 2, 1);
 		}
 
+		if (pixel_format == 1)
+		{
+			line_buffer = malloc(line_size);
+
+			for(int i = height - 1; i >= 0; i--)
+			{
+				fread(line_buffer, 1, line_size, fp);
+
+				// TODO: may be we could verify if we are not printing more pixels than width?
+				for (int j = 0; j < line_size; j++)
+				{
+					int x_off = j << 3;
+					// TODO: we need to convert using the provided palette!!
+					for (int offst = 7; offst >= 0; offst--)
+						drawpixel(x_off + offst, i, (line_buffer[j] >> (7 - offst)) & 1);
+				}
+			}
+			free(line_buffer);
+		}
 		if (pixel_format == 4)
 		{
 			if (rle)
@@ -233,12 +285,11 @@ int bmp_load_and_display(const char *filename, int mode)
 			}
 			else
 			{
-				uint16_t line_size = width >> 1;
 				line_buffer = malloc(line_size);
 				for(int i = height - 1; i >= 0; i--)
 				{
 					fread(line_buffer, 1, line_size, fp);
-
+					// TODO: we need to convert using the provided palette!!
 					for (int j = 0; j < line_size; j++)
 					{
 						drawpixel(j<<1, i, line_buffer[j] >> 4);
@@ -257,7 +308,6 @@ int bmp_load_and_display(const char *filename, int mode)
 			}
 			else
 			{
-				uint16_t line_size = width;
 				line_buffer = malloc(line_size);
 
 				for(int i = height - 1; i >=0; i--)
@@ -267,13 +317,12 @@ int bmp_load_and_display(const char *filename, int mode)
 					offset = 0;
 					for (int j = 0; j < line_size; j++)
 					{
-						if (mode == VIDEO_MODE_13)
+						if (graph_mode == VIDEO_MODE_13)
 							drawpixel(j, i, line_buffer[j]);
 						else
 						{
 							uint16_t coltmp = (uint16_t) line_buffer[j] * 3;
 							drawpixel(j, i, rgb_to_vga16_fast(palette[coltmp], palette[coltmp + 1], palette[coltmp + 2]));
-
 						}
 					}
 				}
@@ -281,44 +330,16 @@ int bmp_load_and_display(const char *filename, int mode)
 
 			}
 		}
-		if (pixel_format == 1)
-		{
-			if (rle)
-			{
-				printf("RLE for 1-bit images not supported!\n");
-				// decompress_RLE_BMP(fp,pixel_format,width,height,0);
-			}
-			else
-			{
-				uint16_t line_size = width >> 3;
-				line_buffer = malloc(line_size);
-
-				for(int i = height - 1; i >= 0; i--)
-				{
-					fread(line_buffer, 1, line_size, fp);
-
-					for (int j = 0; j < line_size; j++)
-					{
-						int x_off = j << 3;
-						for (int offst = 7; offst >= 0; offst--)
-							drawpixel(x_off + offst, i, (line_buffer[j] >> (7 - offst)) & 1);
-					}
-				}
-				free(line_buffer);
-			}
-		}
 	}
-
 	if (pixel_format == 24)
 	{
-		uint16_t line_size = width * 3;
 		line_buffer = malloc(line_size);
 
 		// now load an optimized pallet for RGB to 8-bit conversion
-		if (mode == VIDEO_MODE_13)
+		if (graph_mode == VIDEO_MODE_13)
 			load_palette1(VIDEO_MODE_13);
 
-		if (mode == VIDEO_MODE_12 || mode == VIDEO_MODE_10)
+		if (graph_mode == VIDEO_MODE_12 || graph_mode == VIDEO_MODE_10)
 			load_palette1_4bit(VIDEO_MODE_12);
 
 		for(int i = height - 1; i >= 0; i--)
@@ -329,7 +350,7 @@ int bmp_load_and_display(const char *filename, int mode)
 			for (int j = 0; j < width; j++)
 			{
 				uint8_t pixel;
-				if (mode == VIDEO_MODE_13)
+				if (graph_mode == VIDEO_MODE_13)
 				{
 					pixel = rgb2palette1(line_buffer[offset+2], line_buffer[offset+1], line_buffer[offset]); // blue, green and red
 				}
@@ -347,6 +368,7 @@ int bmp_load_and_display(const char *filename, int mode)
 	if (pixel_format == 16 || pixel_format == 32)
 	{
 		printf("Pixel Format %hhu: Not Yet Supported!\n",  pixel_format);
+		return -1;
 	}
 
 
@@ -367,20 +389,6 @@ int bmp_load_and_display(const char *filename, int mode)
 	return 0;
 
 }
-
-uint16_t mode = 0;
-
-#ifndef __C86
-void sig_handler(int signo)
-{
-	if (signo == SIGINT)
-		printf("received SIGINT\n");
-
-	// revert to mode in use when software was started
-	if (mode)
-		set_mode(mode);
-}
-#endif
 
 int main(int argc, char *argv[])
 {
