@@ -206,7 +206,8 @@ int bmp_load_and_display(const char *filename, int graph_mode)
 		line_size = width * (pixel_format >> 3);
 
 	printf("line size: %d\n", line_size);
-	int pad_size = (line_size) % 4;
+	int pad_size = (4 - ((line_size) % 4)) % 4;
+
 
 	// load palette
 	if (pixel_format <= 8)
