@@ -11,7 +11,7 @@ void print_usage(char *command)
 
 	printf("Usage: %s [-m mode] [image_file.%c%c%c]\n", command, command[i], command[i+1], command[i+2]);
 	printf("source_file: image file to decode.\n");
-	printf("mode: IBM PC BIOS mode, in hexadecimal - don't need to write the \"0x\".\n Supported: 0x10 (EGA 640x350 4-bit), 0x12 (VGA 640x480 4-bit) and 0x13 (320x200 8-bit).\n");
+	printf("mode: IBM PC BIOS mode, in hexadecimal - don't need to write the \"0x\".\n Supported modes: 0x10 (EGA/VGA 640x350 4-bit), 0x12 (VGA 640x480 4-bit) and 0x13 (VGA 320x200 8-bit).\n");
 	printf("\n");
 	printf("%s displays the image in the screen.\n", command);
 	printf("\n");
