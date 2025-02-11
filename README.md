@@ -10,8 +10,11 @@ ELKS Viewer is a set of tools composed by standalone viewers:
 
 JPEG decoding uses PicoJPEG. Source "graphics.c" contains the graphics operation routines. 
 
+Open Watcom v2 and C86 compilers are supported, and the software is linked to ELKS libc. 
 
-Open Watcom v2 compiler is supported (C86 support WIP), and the software is linked to ELKS libc. 
+Folder "3rdparty" contains external software: CPIG (Color Palette Inference Generator) to create optimized palettes for a given image, and a dithering implementation.
+
+# Usage
 
 ```
  Usage: {jpg,bmp,ppm}view [-m mode] [source_file]
@@ -19,9 +22,6 @@ Open Watcom v2 compiler is supported (C86 support WIP), and the software is link
     mode: IBM PC BIOS mode, in hexadecimal - don't need to write the "0x".
           Supported modes: 0x10 (EGA 640x350 4-bit), 0x12 (VGA 640x480 4-bit) and 0x13 (320x200 8-bit).
 ```
-
-Folder "3rdparty" contains external software: CPIG (Color Palette Inference Generator) to create optimized palettes for a given image, and a dithering implementation.
-
 
 # Build
 
