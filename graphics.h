@@ -67,16 +67,14 @@ uint16_t get_mode();
 void set_palette(uint8_t red, uint8_t green, uint8_t blue, uint16_t idx);
 void get_palette(uint8_t *red, uint8_t *green, uint8_t *blue, uint16_t idx);
 
+// 8 bit stuff
 void load_palette1(uint8_t mode_set); // color 256
 void load_palette1g(uint8_t mode_set); // gray 256
-void load_palette1_4bit(uint8_t mode_set); // color 16
-void load_palette1g_4bit(uint8_t mode_set); // gray 16
 
 uint8_t rgb2palette1(uint8_t r, uint8_t g, uint8_t b);
 
-// 4-bit stuff
-uint8_t rgb2vga4b(int r, int g, int b);
-void drawpixel4rgb(int x, int y, unsigned char red, unsigned char grn, unsigned char blu);
+void load_palette1_4bit(uint8_t mode_set); // color 16
+void load_palette1g_4bit(uint8_t mode_set); // gray 16
 
 // Fast conversion with grayscale handling
 unsigned char rgb_to_vga16_fast(unsigned char r, unsigned char g, unsigned char b);
@@ -90,21 +88,11 @@ void vga_drawvline(int x, int y1, int y2, int c);
 int vga_readpixel(int x, int y);
 
 void writevid(uint16_t offset, uint8_t c);
-
-void set_palette_register(uint8_t palette_register, uint8_t dac_index);
-void set_dac_color(uint8_t dac_index, uint8_t red, uint8_t green, uint8_t blue);
-void set_ega_palette_ports(uint8_t *palette);
-#endif
-
-#if 0
-// this is very slow - don't use it
-uint8_t rgb2vga(int r, int g, int b);
 #endif
 
 #ifdef __WATCOMC__
 extern uint8_t __far *CGA;
 extern uint8_t __far *VGA;
-
 #endif
 
 

@@ -46,6 +46,7 @@ void sig_handler(int signo)
 #endif
 
 
+// Implementation using parts of: https://github.com/mills32/Little-Game-Engine-for-VGA-EGA
 // Uncompress BMP image (either RLE8 or RLE4)
 void decompress_RLE_BMP(FILE *fp, unsigned char bpp, int width, int height, uint8_t palette){
 	int xpos = 0;
