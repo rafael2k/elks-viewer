@@ -83,7 +83,5 @@ bmpview: bmpview.o graphics.o vga-4bp.o utils.o
 test: test.o graphics.o vga-4bp.o
 	$(LD) $(LDFLAGS) -o $@ test.o graphics.o vga-4bp.o $(LDLIBS)
 
-# vga-4bp.o: vga-4bp.s
-
 clean:
 	rm -f $(PROG) *.o

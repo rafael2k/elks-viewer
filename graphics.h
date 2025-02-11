@@ -91,6 +91,9 @@ int vga_readpixel(int x, int y);
 
 void writevid(uint16_t offset, uint8_t c);
 
+void set_palette_register(uint8_t palette_register, uint8_t dac_index);
+void set_dac_color(uint8_t dac_index, uint8_t red, uint8_t green, uint8_t blue);
+void set_ega_palette_ports(uint8_t *palette);
 #endif
 
 #if 0
@@ -101,6 +104,7 @@ uint8_t rgb2vga(int r, int g, int b);
 #ifdef __WATCOMC__
 extern uint8_t __far *CGA;
 extern uint8_t __far *VGA;
+
 #endif
 
 

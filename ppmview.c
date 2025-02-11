@@ -142,9 +142,9 @@ int ppm_load_and_display(const char *pFilename, int graph_mode)
 	if (graph_mode == VIDEO_MODE_13)
 	{
 		if (is_gray)
-			load_palette1g(VIDEO_MODE_13);
+			load_palette1g(graph_mode);
 		else
-			load_palette1(VIDEO_MODE_13);
+			load_palette1(graph_mode);
 	}
 	else
 	{

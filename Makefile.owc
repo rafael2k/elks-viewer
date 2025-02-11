@@ -53,6 +53,8 @@ ppmview: ppmview.obj graphics.obj utils.obj
 bmpview: bmpview.obj graphics.obj utils.obj
 	$(LD) $(LDFLAGS) -o $@ bmpview.obj graphics.obj utils.obj $(LDLIBS)
 
+test: test.obj graphics.obj
+	$(LD) $(LDFLAGS) -o $@ test.obj graphics.obj $(LDLIBS)
 
 #ppmview.obj: ppmview.c
 #	$(CC) -c $(CFLAGS) -o ppmview.obj $<

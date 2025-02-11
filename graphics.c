@@ -67,6 +67,32 @@ void set_palette_b(uint16_t ax);
 	"int 10h",									\
 	modify [ ax bx cx dx ];
 
+void set_palette_c(uint8_t color, uint8_t red, uint8_t green, uint8_t blue);
+#pragma aux set_palette_c parm [ al ] [ bl ] [ cl ] [ dl ] =	\
+	"push dx",													\
+	"mov dx,03c8h",												\
+	"out dx,al",												\
+	"mov dx,03c9h",												\
+	"mov al,bl",												\
+	"out dx,al",												\
+	"mov al,cl",												\
+	"out dx,al",												\
+	"pop ax"													\
+	"out dx,al",												\
+	modify [ ax bx cx dx ];
+
+void set_palette_register(uint8_t color, uint8_t register);
+#pragma aux set_palette_register parm [ al ] [ bl ] =	\
+	"push ax",													\
+	"mov cx,03dah",												\
+	"mov al, 0h",												\
+	"out dx,al",												\
+	"pop ax",													\
+	"mov dx,03c0h",												\
+	"out dx,al",												\
+	"mov dx,03dah",												\
+	"mov al,20h",												\
+	modify [ ax bx cx dx ];
 
 
 void get_palette_a(uint16_t bx);
@@ -215,6 +241,29 @@ static void set_palette_b(uint16_t bx)
 
 }
 
+static void set_palette_c(uint16_t color, uint16_t red, uint16_t green, uint16_t blue)
+{
+
+    asm(
+        "push   bx\n"
+        "push   cx\n"
+		"push   dx\n"
+		"mov    dx,#0x03c8\n"
+        "mov    al,[bp+4]\n"
+		"out    dx,al\n"
+		"mov    dx,#0x03c9\n"
+		"mov    al,[bp+6]\n"
+		"out    dx,al\n"
+		"mov    al,[bp+8]\n"
+		"out    dx,al\n"
+		"mov    al,[bp+10]\n"
+		"out    dx,al\n"
+        "pop    dx\n"
+        "pop    cx\n"
+        "pop    bx\n"
+		);
+}
+
 static void get_palette_a(uint16_t idx, uint16_t *cx, uint16_t *dx)
 {
     asm(
@@ -234,7 +283,79 @@ static void get_palette_a(uint16_t idx, uint16_t *cx, uint16_t *dx)
         "pop    cx\n"
         "pop    bx\n"
 		);
+}
 
+void set_palette_register(uint8_t palette_register, uint8_t dac_index)
+{
+    asm(
+        "push   ax\n"
+		"push   bx\n"
+        "push   cx\n"
+		"push   dx\n"
+		"mov    ax,#0x1000\n"
+		"mov    bh,[bp+5]\n"
+		"mov    bl,[bp+4]\n"
+		"int    0x10\n"
+        "pop    dx\n"
+        "pop    cx\n"
+        "pop    bx\n"
+		"pop    ax\n"
+		);
+}
+
+static void set_pport(uint8_t idx, uint8_t color)
+{
+	asm(
+		"push   ax\n"
+		"push   dx\n"
+		"mov    dx,#0x3DA\n"
+		"mov    al,#0x0\n"
+		"out    dx,al\n"
+		"mov    dx,#0x3C0\n"
+		"mov    al,[bp+4]\n"
+		"out    dx,al\n"
+		"mov    al,[bx+5]\n"
+		"out    dx,al\n"
+		"mov    al,#0x20\n"
+		"out    dx,al\n"
+        "pop    dx\n"
+		"pop    ax\n"
+		);
+
+}
+
+void set_ega_palette_ports(uint8_t *palette)
+{
+    // Itera sobre os 16 palette registers
+    for (uint8_t i = 0; i < 16; i++)
+	{
+		set_pport(i | 0x20, palette[i]);
+    }
+
+}
+
+void set_dac_color(uint8_t dac_index, uint8_t red, uint8_t green, uint8_t blue)
+{
+    asm(
+        "push   ax\n"
+		"push   bx\n"
+        "push   cx\n"
+		"push   dx\n"
+		"mov    dx,#0x3C8\n"
+		"mov    al,[bp+4]\n"
+		"out    dx,al\n"
+		"mov    dx,#0x3C9\n"
+		"mov    al,[bp+5]\n"
+		"out    dx,al\n"
+		"mov    al,[bp+6]\n"
+		"out    dx,al\n"
+		"mov    al,[bp+7]\n"
+		"out    dx,al\n"
+        "pop    dx\n"
+        "pop    cx\n"
+        "pop    bx\n"
+		"pop    ax\n"
+		);
 }
 
 
@@ -377,6 +498,17 @@ void get_palette(uint8_t *red, uint8_t *green, uint8_t *blue, uint16_t idx)
 #endif
 }
 
+#if 0
+// Função para converter um tom de cinza em um índice de cor EGA
+uint8_t grayscale_to_ega_color(uint8_t intensity) {
+    // Mapeia a intensidade (0-255) para uma das 4 cores de cinza disponíveis
+    if (intensity < 64) return 0x00; // Preto
+    if (intensity < 128) return 0x08; // Cinza Escuro
+    if (intensity < 192) return 0x07; // Cinza Claro
+    return 0x0F; // Branco
+}
+#endif
+
 // this is our grayscale palette
 void load_palette1g(uint8_t mode_set)
 {
@@ -393,23 +525,24 @@ void load_palette1g(uint8_t mode_set)
 	}
 }
 
-// this is our grayscale palette
+uint8_t color_register_map[16] = {
+	0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x14, 0x07,
+	0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F
+};
+
 void load_palette1g_4bit(uint8_t mode_set)
 {
-	uint8_t luminance;
-	if (mode_set == VIDEO_MODE_12)
+
+	if (mode_set == VIDEO_MODE_12 || mode_set == VIDEO_MODE_10)
 	{
-		int num_colors = 256;
-		int idx = 0;
-		for(int i = 0; i < num_colors; i += 16)
+
+		for (int i = 0; i < 16; i++)
 		{
-			luminance = (uint8_t) i;
-			set_palette(luminance, luminance, luminance, idx);
-			idx++;
+			uint8_t lum = i << 2;
+			set_palette_c(color_register_map[i], lum, lum, lum);
 		}
 	}
 }
-
 
 // format for light conversion from RGB 24bit (palette1) is RRRGGGBB
 void load_palette1(uint8_t mode_set)
