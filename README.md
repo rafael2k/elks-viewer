@@ -20,7 +20,10 @@ Folder "3rdparty" contains external software: CPIG (Color Palette Inference Gene
  Usage: {jpg,bmp,ppm}view [-m mode] [source_file]
     source_file: Image file to decode.
     mode: IBM PC BIOS mode, in hexadecimal - don't need to write the "0x".
-          Supported modes: 0x10 (EGA 640x350 4-bit), 0x12 (VGA 640x480 4-bit) and 0x13 (320x200 8-bit).
+          Supported modes:
+          - 0x10 (EGA/VGA 640x350 4-bit)
+          - 0x12 (VGA 640x480 4-bit)
+          - 0x13 (VGA 320x200 8-bit, default)
 ```
 
 # Build
