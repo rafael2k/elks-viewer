@@ -33,7 +33,10 @@
 
 uint16_t mode = 0;
 
-#ifndef __C86
+#ifdef __C86__
+void zero(void) {}      /* required to keep catch() from having address 0 */
+#endif
+
 void sig_handler(int signo)
 {
 	if (signo == SIGINT)
@@ -43,8 +46,6 @@ void sig_handler(int signo)
 	if (mode)
 		set_mode(mode);
 }
-#endif
-
 
 // Implementation using parts of: https://github.com/mills32/Little-Game-Engine-for-VGA-EGA
 // Uncompress BMP image (either RLE8 or RLE4)
@@ -411,10 +412,8 @@ int main(int argc, char *argv[])
 
 	mode = get_mode();
 
-#ifndef __C86__
 	if (signal(SIGINT, sig_handler) == SIG_ERR)
 		printf("\ncan't catch SIGINT\n");
-#endif
 
 	printf("Source File:               \"%s\"\n", filename);
 	printf("Current Graphics Mode:     \"0x%hx\"\n", mode);
