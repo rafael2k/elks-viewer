@@ -1,3 +1,3 @@
-- Implement support for BMPs with padding and with 3-byte palette
-- Fix the 8-bit and 4-bit BMP palette mode output on 4-bit colors
-- Update jpgview to support 4-bit output
+- Implement support for scaling and full-screen mode
+- Use function pointers to de-clutter the code
+- Debug native compilation
