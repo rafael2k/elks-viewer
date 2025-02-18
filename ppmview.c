@@ -40,10 +40,6 @@ extern void free(void *ptr);
 
 uint16_t mode = 0;
 
-#ifdef __C86__
-void zero(void) {}      /* required to keep catch() from having address 0 */
-#endif
-
 void sig_handler(int signo)
 {
 	if (signo == SIGINT)
