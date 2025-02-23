@@ -410,7 +410,6 @@ void drawpixel(int x,int y, uint8_t color)
 	case TEXT_MODE_2:
 	case TEXT_MODE_1:
 	case TEXT_MODE_0:
-		break;
 
 	default:
 		printf("Unsupported mode: %02x\n", mode_internal);
@@ -498,7 +497,7 @@ void set_palette(uint8_t red, uint8_t green, uint8_t blue, uint16_t idx)
 	}
 }
 
-// returns the palette of index in colors[0,1,2]
+// returns the palette color of index in colors[0,1,2]
 void get_palette(uint8_t *red, uint8_t *green, uint8_t *blue, uint16_t idx)
 {
 #if defined(__WATCOMC__)
