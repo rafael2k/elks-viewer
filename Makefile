@@ -34,7 +34,7 @@ PROGS=ppmview bmpview jpgview
 
 all: $(PROGS)
 
-jpgview: picojpeg.o mem.o jpgview.o graphics.o vga-4bp.o utils.o
+jpgview: picojpeg.o jpgview.o graphics.o vga-4bp.o utils.o
 	$(LD) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 ppmview: ppmview.o graphics.o vga-4bp.o utils.o

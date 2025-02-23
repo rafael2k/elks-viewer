@@ -44,8 +44,8 @@ all: $(PROG)
 #$(PROG): $(OBJS)
 #	$(LD) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
 
-jpgview: picojpeg.obj mem.obj jpgview.obj graphics.obj utils.obj
-	$(LD) $(LDFLAGS) -o $@ picojpeg.obj mem.obj jpgview.obj graphics.obj utils.obj $(LDLIBS)
+jpgview: picojpeg.obj jpgview.obj graphics.obj utils.obj
+	$(LD) $(LDFLAGS) -o $@ picojpeg.obj jpgview.obj graphics.obj utils.obj $(LDLIBS)
 
 ppmview: ppmview.obj graphics.obj utils.obj
 	$(LD) $(LDFLAGS) -o $@ ppmview.obj graphics.obj utils.obj $(LDLIBS)
