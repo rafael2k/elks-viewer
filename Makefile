@@ -30,7 +30,8 @@ LDLIBS=-lc86
 
 ##### End of standardized section #####
 
-PROGS=ppmview bmpview jpgview
+#PROGS=ppmview bmpview jpgview - jpeview is not building yet
+PROGS=ppmview bmpview
 
 all: $(PROGS)
 
