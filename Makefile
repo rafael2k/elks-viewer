@@ -21,12 +21,12 @@ LDLIBS=-lc86
 
 # Automated rules for C86 toolchain
 .c.o:
-	$(TIME) $(CPP) $(CPPFLAGS) $*.c -o $*.i
-	$(TIME) $(CC) $(CFLAGS) $*.i $*.as
-	$(TIME) $(AS) $(ASFLAGS) $*.as -o $*.o
+	$(CPP) $(CPPFLAGS) $*.c -o $*.i
+	$(CC) $(CFLAGS) $*.i $*.as
+	$(AS) $(ASFLAGS) $*.as -o $*.o
 
 .s.o:
-	$(TIME) $(AS) $(ASFLAGS) $*.s -o $*.o
+	$(AS) $(ASFLAGS) $*.s -o $*.o
 
 ##### End of standardized section #####
 
@@ -40,7 +40,7 @@ jpgview: picojpeg.o mem.o jpgview.o graphics.o vga-4bp.o utils.o
 ppmview: ppmview.o graphics.o vga-4bp.o utils.o
 	$(LD) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
-bmpview: bmpview.o graphics.o vga-4bp.o utils.o
+bmpview: bmpview.o bmputils.o graphics.o vga-4bp.o utils.o
 	$(LD) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 clean:
