@@ -12,7 +12,14 @@ JPEG decoding uses PicoJPEG. Source "graphics.c" contains the graphics operation
 
 Open Watcom v2 and C86 compilers are supported, and the software is linked to ELKS libc. 
 
-Folder "3rdparty" contains external software: CPIG (Color Palette Inference Generator) to create optimized palettes for a given image, and a dithering implementation.
+Folder "3rdparty" contains external software: CPIG (Color Palette Inference Generator) to create optimized palettes for a given image, and a dithering implementation. Not used.
+
+![screenshot1](screenshots/i1.jpg)
+![screenshot1](screenshots/i2.jpg)
+![screenshot1](screenshots/i3.jpg)
+![screenshot1](screenshots/i4.jpg)
+![screenshot1](screenshots/i5.jpg)
+![screenshot1](screenshots/i6.jpg)
 
 # Usage
 
