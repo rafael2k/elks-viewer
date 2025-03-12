@@ -203,7 +203,8 @@ int bmp_payload_parse(FILE *fp, int graph_mode, uint8_t pixel_format, uint16_t w
 						drawpixel(j, i, line_buffer[j]);
 					else
 					{
-						uint16_t coltmp = (uint16_t) line_buffer[j] * 3;
+						uint16_t coltmp = line_buffer[j];
+						coltmp *= 3;
 						drawpixel(j, i, rgb_to_vga16_fast(palette[coltmp], palette[coltmp + 1], palette[coltmp + 2]));
 					}
 				}
