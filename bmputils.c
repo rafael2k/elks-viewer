@@ -179,6 +179,9 @@ int bmp_payload_parse(FILE *fp, int graph_mode, uint8_t pixel_format, uint16_t w
 	}
 	if (pixel_format == 8)
 	{
+		if (graph_mode == VIDEO_MODE_12 || graph_mode == VIDEO_MODE_10)
+			load_palette1_4bit(graph_mode);
+
 		if (rle)
 		{
 			decompress_RLE_BMP(fp,pixel_format,width,height,0);
