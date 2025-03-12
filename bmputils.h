@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
-void decompress_RLE_BMP(FILE *fp, unsigned char bpp, int width, int height, uint8_t palette);
+void decompress_RLE_BMP(FILE *fp, unsigned char bpp, int width, int height, int graph_mode, uint8_t palette, uint8_t *pic_palette);
 int bmp_payload_parse(FILE *fp, int graph_mode, uint8_t pixel_format, uint16_t width, uint16_t height, uint8_t rle, uint8_t *palette);
 
 #endif // BMP_INTERNALS_H_
